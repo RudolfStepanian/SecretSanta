@@ -5,10 +5,9 @@
     var game = Model.Me.Game;
     var recipient = game.DrawnAt is not null ? Model.Me.Recipient : null;
     var santaLabel = T["WhoSanta"];
-    // 20 designs: motif d on wrapping d % 5; each participant gets their own stable order.
-    string[] motifs = ["🎄", "⛄", "🎁", "🔔", "🦌", "🧦", "⭐", "🍊", "🕯️", "🎅", "🍪", "❄️", "🛷", "🧸", "🍭", "🥂", "🎆", "🧣", "🎀", "🧤"];
+    // 20 candy emblems from /img/candy.svg (c0..c19); each participant gets their own stable order.
     var shuffle = new Random(Model.Me.Id);
-    var designs = Enumerable.Range(0, motifs.Length).OrderBy(_ => shuffle.Next()).ToArray();
+    var designs = Enumerable.Range(0, 20).OrderBy(_ => shuffle.Next()).ToArray();
 }
 
 <h1>👋 @T.F("Hello", Model.Me.Name)</h1>
@@ -50,9 +49,9 @@ else
                 @for (var i = 1; i < game.Participants.Count; i++)
                 {
                     var design = designs[(i - 1) % designs.Length];
-                    <button type="submit" class="playcard wrap-@(design % 5)" aria-label="@T.F("CardLabel", i)">
+                    <button type="submit" class="playcard" aria-label="@T.F("CardLabel", i)">
                         <span class="inner">
-                            <span class="back" aria-hidden="true"><span class="emblem">@motifs[design]</span></span>
+                            <span class="back" aria-hidden="true"><span class="emblem"><svg viewBox="0 0 60 60"><use href="/img/candy.svg#c@(design)" /></svg></span></span>
                             <span class="face"></span>
                         </span>
                     </button>
