@@ -357,16 +357,73 @@ details.join[open] > summary { margin-bottom: 6px; }
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+/* Backs: five New Year wrappings, a gold medallion with a motif, star corners */
 .playcard .back {
-  color: var(--gold-soft);
-  font-size: 1.7rem;
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.25);
   background:
     repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0 5px, transparent 5px 12px),
     linear-gradient(135deg, #e0344f, var(--red) 55%, var(--red-dark));
-  box-shadow: inset 0 0 0 3px var(--red-dark), 0 4px 10px rgba(0, 0, 0, 0.25);
 }
+.playcard.wrap-1 .back {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.5) 1.4px, transparent 2px) 0 0 / 14px 14px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.3) 1px, transparent 1.6px) 7px 7px / 14px 14px,
+    linear-gradient(135deg, #2c9468, var(--green) 55%, var(--green-dark));
+}
+.playcard.wrap-2 .back {
+  background:
+    radial-gradient(circle, rgba(246, 226, 168, 0.75) 1px, transparent 1.6px) 3px 4px / 17px 19px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.35) 0.8px, transparent 1.4px) 11px 13px / 23px 21px,
+    linear-gradient(160deg, #2b4f86, #17345f 55%, #0c1f3d);
+}
+.playcard.wrap-3 .back {
+  background:
+    repeating-linear-gradient(45deg, rgba(230, 184, 74, 0.28) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(-45deg, rgba(230, 184, 74, 0.28) 0 1px, transparent 1px 12px),
+    linear-gradient(135deg, #a3182f, #7a1023 55%, #5c0b19);
+}
+.playcard.wrap-4 .back {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 1.5px, transparent 2.2px) 0 0 / 16px 16px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 1px, transparent 1.6px) 8px 8px / 16px 16px,
+    linear-gradient(150deg, #eaf5fc, #bfdcef 55%, #8fbad8);
+}
+.playcard.wrap-4 .back::before,
+.playcard.wrap-4 .back::after { color: #2b4f86; }
+.playcard .back::before,
+.playcard .back::after {
+  content: "✦";
+  position: absolute;
+  color: var(--gold-soft);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+.playcard .back::before { top: 7px; left: 8px; }
+.playcard .back::after { bottom: 7px; right: 8px; }
+.playcard .emblem {
+  display: grid;
+  place-items: center;
+  width: 56%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  font-size: 1.55rem;
+  line-height: 1;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08) 70%);
+  box-shadow: 0 0 0 2px var(--gold), 0 0 0 5px rgba(0, 0, 0, 0.15), 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Face: cream paper with holly corners */
+.playcard .face::before,
+.playcard .face::after {
+  content: "🎄";
+  position: absolute;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+.playcard .face::before { top: 5px; left: 6px; }
+.playcard .face::after { bottom: 5px; right: 6px; transform: rotate(180deg); }
 .playcard .face {
-  padding: 6px 4px;
+  padding: 18px 4px;
   background: var(--paper);
   color: var(--red);
   font-family: var(--display);
