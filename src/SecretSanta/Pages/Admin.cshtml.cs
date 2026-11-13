@@ -1,0 +1,147 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using SecretSanta.Data;
+using SecretSanta.Services;
+
+namespace SecretSanta.Pages;
+
+public class AdminModel(AppDb db) : PageModel
+{
+    public Game Game { get; private set; } = null!;
+    public List<Participant> People { get; private set; } = [];
+    public List<(int Id, string A, string B)> Pairs { get; private set; } = [];
+    public bool Created { get; private set; }
+    [TempData] public string? ErrorKey { get; set; }
+    [TempData] public string? RelinkName { get; set; }
+    [TempData] public string? RelinkUrl { get; set; }
+
+    public async Task<IActionResult> OnGetAsync(string token, bool created = false)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+        Created = created;
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostRemoveAsync(string token, int id)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+        if (Locked()) return Back(token);
+
+        var person = Game.Participants.FirstOrDefault(p => p.Id == id);
+        if (person is not null)
+        {
+            db.Exclusions.RemoveRange(Game.Exclusions.Where(x => x.FirstId == id || x.SecondId == id));
+            db.Participants.Remove(person);
+            await db.SaveChangesAsync();
+        }
+        return Back(token);
+    }
+
+    public async Task<IActionResult> OnPostExcludeAsync(string token, int a, int b)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+        if (Locked()) return Back(token);
+
+        var ids = Game.Participants.Select(p => p.Id).ToHashSet();
+        var exists = Game.Exclusions.Any(x => (x.FirstId == a && x.SecondId == b) || (x.FirstId == b && x.SecondId == a));
+        if (a != b && ids.Contains(a) && ids.Contains(b) && !exists)
+        {
+            db.Exclusions.Add(new Exclusion { GameId = Game.Id, FirstId = a, SecondId = b });
+            await db.SaveChangesAsync();
+        }
+        return Back(token);
+    }
+
+    public async Task<IActionResult> OnPostUnexcludeAsync(string token, int id)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+        if (Locked()) return Back(token);
+
+        var exclusion = Game.Exclusions.FirstOrDefault(x => x.Id == id);
+        if (exclusion is not null)
+        {
+            db.Exclusions.Remove(exclusion);
+            await db.SaveChangesAsync();
+        }
+        return Back(token);
+    }
+
+    public async Task<IActionResult> OnPostDrawAsync(string token)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+        if (Game.DrawnAt is not null) return Back(token);
+
+        if (Game.Participants.Count < Services.Draw.MinParticipants)
+        {
+            ErrorKey = "DrawNeedMore";
+            return Back(token);
+        }
+
+        var pairs = Services.Draw.Assign(
+            Game.Participants.Select(p => p.Id),
+            Game.Exclusions.Select(x => (x.FirstId, x.SecondId)),
+            Random.Shared);
+        if (pairs is null)
+        {
+            ErrorKey = "DrawImpossible";
+            return Back(token);
+        }
+
+        foreach (var p in Game.Participants) p.RecipientId = pairs[p.Id];
+        Game.DrawnAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return Back(token);
+    }
+
+    public async Task<IActionResult> OnPostUndrawAsync(string token)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+
+        foreach (var p in Game.Participants) p.RecipientId = null;
+        Game.DrawnAt = null;
+        await db.SaveChangesAsync();
+        return Back(token);
+    }
+
+    public async Task<IActionResult> OnPostRelinkAsync(string token, int id)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+
+        var person = Game.Participants.FirstOrDefault(p => p.Id == id);
+        if (person is not null)
+        {
+            person.Token = Tokens.New();
+            await db.SaveChangesAsync();
+            RelinkName = person.Name;
+            RelinkUrl = Request.Abs($"/me/{person.Token}");
+        }
+        return Back(token);
+    }
+
+    private async Task<bool> LoadAsync(string token)
+    {
+        var game = await db.Games
+            .Include(g => g.Participants)
+            .Include(g => g.Exclusions)
+            .SingleOrDefaultAsync(g => g.AdminToken == token);
+        if (game is null) return false;
+
+        Game = game;
+        People = game.Participants.OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+        var names = game.Participants.ToDictionary(p => p.Id, p => p.Name);
+        Pairs = game.Exclusions
+            .Select(x => (x.Id, names.GetValueOrDefault(x.FirstId, "?"), names.GetValueOrDefault(x.SecondId, "?")))
+            .ToList();
+        return true;
+    }
+
+    private bool Locked()
+    {
+        if (Game.DrawnAt is null) return false;
+        ErrorKey = "LockedAfterDraw";
+        return true;
+    }
+
+    private RedirectResult Back(string token) => Redirect($"/admin/{token}");
+}

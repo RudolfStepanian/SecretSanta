@@ -1,4 +1,4 @@
-# Secret Satana
+# Secret Santa
 
 A small Secret Santa site for a team. No accounts, no e-mails: everything works through secret links.
 
@@ -35,11 +35,11 @@ Settings:
 ## Run locally
 
 ```bash
-docker run -d --name secretsatana-postgres -p 5433:5432 -e POSTGRES_USER=secretsatana -e POSTGRES_PASSWORD=secretsatana -e POSTGRES_DB=secretsatana postgres:16-alpine
+docker run -d --name secretsanta-postgres -p 5433:5432 -e POSTGRES_USER=secretsanta -e POSTGRES_PASSWORD=secretsanta -e POSTGRES_DB=secretsanta postgres:16-alpine
 ```
 
 ```bash
-dotnet run --project src/SecretSatana
+dotnet run --project src/SecretSanta
 ```
 
 Open http://localhost:5106. `appsettings.Development.json` points at that container and sets `PairsKey` to `dev`.
@@ -61,8 +61,8 @@ dotnet test
 ## Docker
 
 ```bash
-docker build -t secretsatana .
-docker run -d --name secretsatana -p 8080:8080 -e DATABASE_URL=... -e PairsKey=... secretsatana
+docker build -t secretsanta .
+docker run -d --name secretsanta -p 8080:8080 -e DATABASE_URL=... -e PairsKey=... secretsanta
 ```
 
 Put the container behind HTTPS (reverse proxy); `X-Forwarded-*` headers are honoured, so the generated links use the public host and scheme.

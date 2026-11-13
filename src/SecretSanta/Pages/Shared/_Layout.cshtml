@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="@T.Lang">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>@(ViewData["Title"] is string title ? $"{title} · Secret Santa" : "Secret Santa")</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="garland" aria-hidden="true">
+        @for (var i = 0; i < 24; i++)
+        {
+            <i></i>
+        }
+    </div>
+    <header class="top">
+        <a class="logo" href="/">🎅 Secret <span>Santa</span></a>
+        <nav class="langs" aria-label="Language">
+            @foreach (var lang in Languages.Menu)
+            {
+                <a href="?lang=@lang" class="@(lang == T.Lang ? "on" : null)" lang="@lang">@Languages.Label(lang)</a>
+            }
+        </nav>
+    </header>
+    <main class="wrap">
+        @RenderBody()
+    </main>
+    <footer class="foot">☃️ @T["Footer"] 🎄</footer>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

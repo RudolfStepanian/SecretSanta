@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: secretsatana
+    name: secretsanta
     runtime: docker
     plan: free
     region: frankfurt
