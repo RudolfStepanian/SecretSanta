@@ -5,11 +5,6 @@
     var game = Model.Me.Game;
     var recipient = game.DrawnAt is not null ? Model.Me.Recipient : null;
     var santaLabel = T["WhoSanta"];
-    // Emblems from /img/candy.svg alternate: candy cane (c0..c9), gingerbread man (g0..g9), cane, ...
-    // Each participant gets their own stable order within each kind.
-    var shuffle = new Random(Model.Me.Id);
-    var canes = Enumerable.Range(0, 10).OrderBy(_ => shuffle.Next()).Select(n => $"c{n}").ToArray();
-    var men = Enumerable.Range(0, 10).OrderBy(_ => shuffle.Next()).Select(n => $"g{n}").ToArray();
 }
 
 <h1>👋 @T.F("Hello", Model.Me.Name)</h1>
@@ -50,7 +45,7 @@ else
             <form method="post" asp-page-handler="Reveal" class="deck" data-name="@recipient.Name">
                 @for (var i = 1; i < game.Participants.Count; i++)
                 {
-                    var design = i % 2 == 1 ? canes[(i / 2) % canes.Length] : men[(i / 2 - 1) % men.Length];
+                    var design = i % 2 == 1 ? "cane" : "gingerbread";
                     <button type="submit" class="playcard" aria-label="@T.F("CardLabel", i)">
                         <span class="inner">
                             <span class="back" aria-hidden="true"><span class="emblem"><svg viewBox="0 0 60 60"><use href="/img/candy.svg#@design" /></svg></span></span>

@@ -1,15 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <!-- Card emblems, viewBox 0 0 60 60: candy canes c0..c9 and gingerbread men g0..g9. -->
+  <!-- Card emblems, viewBox 0 0 60 60: a red-and-white candy cane and a gingerbread man with a bow tie. -->
   <defs>
-    <path id="cane" d="M24 52V22a8 8 0 0 1 16 0v5" fill="none"/>
-    <g id="bow">
-      <path d="M0 0C-9-8-12 3 0 0Z"/>
-      <path d="M0 0C9-8 12 3 0 0Z"/>
-      <path d="M0 0l-4 9M0 0l4 9" fill="none" stroke-width="2.4" stroke-linecap="round"/>
-      <circle r="2.2"/>
-    </g>
+    <path id="cane-path" d="M24 52V22a8 8 0 0 1 16 0v5" fill="none"/>
 
-    <!-- Gingerbread man: the outline is the same figure drawn wider underneath. Colours come from the <use>. -->
+    <!-- The gingerbread outline is the same figure drawn wider underneath. -->
     <g id="gb-outline" stroke-linecap="round">
       <path d="M17 28H43" stroke-width="10.6"/>
       <path d="M30 34L22 50M30 34L38 50" stroke-width="11.2"/>
@@ -22,192 +16,31 @@
       <ellipse cx="30" cy="33" rx="8.1" ry="10.1"/>
       <circle cx="30" cy="15" r="8.4"/>
     </g>
-    <g id="gb-icing" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round">
+  </defs>
+
+  <symbol id="cane" viewBox="0 0 60 60">
+    <g transform="matrix(-1 0 0 1 60 0)">
+      <use href="#cane-path" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
+      <use href="#cane-path" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+      <use href="#cane-path" stroke="#d42a3c" stroke-width="8" stroke-dasharray="6 3"/>
+    </g>
+  </symbol>
+
+  <symbol id="gingerbread" viewBox="0 0 60 60">
+    <use href="#gb-outline" fill="#6e3a14" stroke="#6e3a14"/>
+    <use href="#gb-shape" fill="#c47a3d" stroke="#c47a3d"/>
+    <g fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round">
       <path d="M19.2 25.6q-1.2 2.4 0 4.8M40.8 25.6q1.2 2.4 0 4.8"/>
       <path d="M20.2 46.2q2.4 2.6 5.3 1.2M39.8 46.2q-2.4 2.6-5.3 1.2"/>
       <path d="M26.6 17.6q3.4 2.8 6.8 0"/>
     </g>
-    <g id="gb-eyes" fill="#3a1d0a">
+    <g fill="#3a1d0a">
       <circle cx="27.2" cy="13.4" r="1.35"/>
       <circle cx="32.8" cy="13.4" r="1.35"/>
     </g>
-    <g id="gb-buttons">
-      <circle cx="30" cy="27.5" r="1.8"/>
-      <circle cx="30" cy="32.8" r="1.8"/>
-      <circle cx="30" cy="38.1" r="1.8"/>
-    </g>
-    <g id="gb">
-      <use href="#gb-outline" fill="#6e3a14" stroke="#6e3a14"/>
-      <use href="#gb-shape" fill="#c47a3d" stroke="#c47a3d"/>
-      <use href="#gb-icing"/>
-      <use href="#gb-eyes"/>
-    </g>
-  </defs>
-
-  <symbol id="c0" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="4 4"/>
-  </symbol>
-
-  <symbol id="c1" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#0b3d29" stroke-opacity=".45" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#1f9a63" stroke-width="8" stroke-dasharray="4 4"/>
-  </symbol>
-
-  <symbol id="c2" viewBox="0 0 60 60">
-    <g transform="matrix(-1 0 0 1 60 0)">
-      <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-      <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-      <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="6 3"/>
-    </g>
-  </symbol>
-
-  <symbol id="c3" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#5c3f06" stroke-opacity=".45" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff8e1" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#e0a82e" stroke-width="8" stroke-dasharray="4 4"/>
-  </symbol>
-
-  <symbol id="c4" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#6b1f43" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#f07aa8" stroke-width="8" stroke-dasharray="4 4"/>
-  </symbol>
-
-  <symbol id="c5" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="4 4"/>
-    <use href="#bow" transform="translate(24 38)" fill="#1f9a63" stroke="#1f9a63"/>
-  </symbol>
-
-  <symbol id="c6" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="3 9"/>
-    <use href="#cane" stroke="#1f9a63" stroke-width="8" stroke-dasharray="3 9" stroke-dashoffset="-6"/>
-  </symbol>
-
-  <symbol id="c7" viewBox="0 0 60 60">
-    <g transform="matrix(-1 0 0 1 60 0)">
-      <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-      <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-      <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="1.6 2.4"/>
-    </g>
-  </symbol>
-
-  <symbol id="c8" viewBox="0 0 60 60">
-    <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-    <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-    <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="4 4"/>
-    <g transform="translate(24 37)">
-      <ellipse cx="-6" cy="0" rx="7" ry="3.2" transform="rotate(-25 -6 0)" fill="#1f7a55"/>
-      <ellipse cx="6" cy="0" rx="7" ry="3.2" transform="rotate(25 6 0)" fill="#2c9468"/>
-      <circle cx="-1.8" cy="-2.6" r="2.3" fill="#e0344f"/>
-      <circle cx="2.2" cy="-2.2" r="2.3" fill="#c41e3a"/>
-      <circle cx="0" cy="0.8" r="2.3" fill="#e0344f"/>
-    </g>
-  </symbol>
-
-  <symbol id="c9" viewBox="0 0 60 60">
-    <g transform="rotate(-18 30 34)">
-      <use href="#cane" stroke="#4a0a16" stroke-opacity=".4" stroke-width="10.5" stroke-linecap="round"/>
-      <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-      <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="4 4"/>
-    </g>
-    <g transform="rotate(18 30 34) matrix(-1 0 0 1 60 0)">
-      <use href="#cane" stroke="#0b3d29" stroke-opacity=".45" stroke-width="10.5" stroke-linecap="round"/>
-      <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-      <use href="#cane" stroke="#1f9a63" stroke-width="8" stroke-dasharray="4 4"/>
-    </g>
-  </symbol>
-
-  <!-- g0: classic, red buttons -->
-  <symbol id="g0" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <use href="#gb-buttons" fill="#d42a3c"/>
-  </symbol>
-
-  <!-- g1: green buttons -->
-  <symbol id="g1" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <use href="#gb-buttons" fill="#1f9a63"/>
-  </symbol>
-
-  <!-- g2: red bow tie, gold buttons -->
-  <symbol id="g2" viewBox="0 0 60 60">
-    <use href="#gb"/>
     <path d="M30 23.6l-5.4-3.2v6.4zM30 23.6l5.4-3.2v6.4z" fill="#d42a3c" stroke="#7a1023" stroke-width=".6"/>
     <circle cx="30" cy="23.6" r="1.5" fill="#a3182f"/>
     <circle cx="30" cy="31" r="1.8" fill="#e6b84a"/>
     <circle cx="30" cy="36.4" r="1.8" fill="#e6b84a"/>
-  </symbol>
-
-  <!-- g3: green scarf, red buttons -->
-  <symbol id="g3" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <path d="M23 23.6h14" stroke="#1f9a63" stroke-width="3.8" stroke-linecap="round"/>
-    <path d="M34.5 24.5l2.6 7" stroke="#1f9a63" stroke-width="3.2" stroke-linecap="round"/>
-    <path d="M23.5 23.6h13" stroke="#fff" stroke-opacity=".55" stroke-width=".9" stroke-dasharray="1.5 1.5"/>
-    <circle cx="30" cy="31" r="1.8" fill="#d42a3c"/>
-    <circle cx="30" cy="36.4" r="1.8" fill="#d42a3c"/>
-  </symbol>
-
-  <!-- g4: Santa hat, white buttons -->
-  <symbol id="g4" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <path d="M21.6 10.6C24 3 33 1 41 5.5l-2.2 5.1z" fill="#d42a3c" stroke="#7a1023" stroke-width=".7"/>
-    <path d="M21.4 10.8h17.6" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
-    <circle cx="41.6" cy="5.4" r="2.6" fill="#fff"/>
-    <use href="#gb-buttons" fill="#fff"/>
-  </symbol>
-
-  <!-- g5: light dough, icing zigzag across the belly -->
-  <symbol id="g5" viewBox="0 0 60 60">
-    <use href="#gb-outline" fill="#7a4719" stroke="#7a4719"/>
-    <use href="#gb-shape" fill="#dda265" stroke="#dda265"/>
-    <use href="#gb-icing"/>
-    <use href="#gb-eyes"/>
-    <path d="M23.6 30.2l2.1 2.1 2.1-2.1 2.2 2.1 2.1-2.1 2.1 2.1 2.2-2.1" fill="none" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="30" cy="26.4" r="1.7" fill="#d42a3c"/>
-    <circle cx="30" cy="37.4" r="1.7" fill="#d42a3c"/>
-  </symbol>
-
-  <!-- g6: holding a little candy cane, green buttons -->
-  <symbol id="g6" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <use href="#gb-buttons" fill="#1f9a63"/>
-    <g transform="translate(33 6) scale(.46)">
-      <use href="#cane" stroke="#4a0a16" stroke-opacity=".5" stroke-width="10.5" stroke-linecap="round"/>
-      <use href="#cane" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
-      <use href="#cane" stroke="#d42a3c" stroke-width="8" stroke-dasharray="4 4"/>
-    </g>
-  </symbol>
-
-  <!-- g7: pink hair bow, pink buttons -->
-  <symbol id="g7" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <use href="#bow" transform="translate(36.5 7.5) rotate(20) scale(.7)" fill="#f07aa8" stroke="#f07aa8"/>
-    <use href="#gb-buttons" fill="#f07aa8"/>
-  </symbol>
-
-  <!-- g8: chocolate dough, white buttons -->
-  <symbol id="g8" viewBox="0 0 60 60">
-    <use href="#gb-outline" fill="#3d1d08" stroke="#3d1d08"/>
-    <use href="#gb-shape" fill="#8a4f24" stroke="#8a4f24"/>
-    <use href="#gb-icing"/>
-    <g fill="#fff">
-      <circle cx="27.2" cy="13.4" r="1.35"/>
-      <circle cx="32.8" cy="13.4" r="1.35"/>
-    </g>
-    <use href="#gb-buttons" fill="#fff"/>
-  </symbol>
-
-  <!-- g9: red heart on the chest -->
-  <symbol id="g9" viewBox="0 0 60 60">
-    <use href="#gb"/>
-    <path d="M30 37.6c-5.6-3.8-5-8.6-2-8.8 1.1-.1 1.7.6 2 1.4.3-.8.9-1.5 2-1.4 3 .2 3.6 5-2 8.8z" fill="#d42a3c" stroke="#fff" stroke-width="1.1"/>
   </symbol>
 </svg>
