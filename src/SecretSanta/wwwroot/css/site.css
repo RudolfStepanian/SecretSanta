@@ -335,6 +335,8 @@ details.join[open] > summary { margin-bottom: 6px; }
   aspect-ratio: 3 / 4;
   perspective: 700px;
   cursor: pointer;
+  position: relative;
+  isolation: isolate;
 }
 .playcard:disabled { cursor: default; }
 .playcard:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 12px; }
@@ -344,7 +346,6 @@ details.join[open] > summary { margin-bottom: 6px; }
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transition: transform 0.6s ease;
 }
 .playcard .back,
 .playcard .face {
@@ -409,9 +410,65 @@ details.join[open] > summary { margin-bottom: 6px; }
   transform: rotateY(180deg);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
-.playcard.flipped .inner { transform: rotateY(180deg); }
-.deck.done .playcard:not(.flipped) { opacity: 0.3; transition: opacity 0.4s ease; }
+/* Opening: a short shake like a gift, then the card lifts while it turns, a gold glow flares behind it
+   and a shine runs across the name. Everything runs once (about 1.5 s) and stops. */
+.playcard.opening .inner { animation: card-shake 0.32s ease-in-out; }
+.playcard.flipped .inner {
+  transform: rotateY(180deg);
+  animation: card-flip 0.9s cubic-bezier(0.25, 0.8, 0.3, 1);
+}
+.playcard::after {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 236, 170, 0.95), rgba(230, 184, 74, 0.45) 40%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+.playcard.flipped::after { animation: card-glow 1.2s ease-out 0.45s; }
+.playcard.flipped .face {
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.9) 50%, transparent 65%) -150% 0 / 250% 100% no-repeat,
+    var(--paper);
+  animation: card-shine 0.8s ease-in-out 0.8s;
+}
+.deck.done .playcard:not(.flipped) { opacity: 0.3; transition: opacity 0.6s ease 0.3s; }
+.deck.collapsed { grid-template-columns: minmax(110px, 140px); justify-content: center; }
+.deck.collapsed .playcard:not(.flipped) { display: none; }
+.deck.collapsed .playcard.flipped { animation: result-rise 0.5s ease-out; }
 .result { margin-top: 18px; }
+.result.appear { animation: result-rise 0.6s ease-out; }
+
+@keyframes card-shake {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-5deg) scale(1.04); }
+  45% { transform: rotate(5deg) scale(1.06); }
+  70% { transform: rotate(-3deg) scale(1.04); }
+}
+@keyframes card-flip {
+  0% { transform: rotateY(0) scale(1); }
+  45% { transform: translateY(-10px) rotateY(110deg) scale(1.18); }
+  75% { transform: translateY(-4px) rotateY(195deg) scale(1.1); }
+  100% { transform: rotateY(180deg) scale(1); }
+}
+@keyframes card-glow {
+  0% { opacity: 0; transform: scale(0.5); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+@keyframes card-shine {
+  to { background-position: 150% 0, 0 0; }
+}
+@keyframes result-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Sparkles thrown out of the opened card; created by site.js and removed when they land */
+.sparkles { position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 50; }
+.sparkles span { position: absolute; left: 0; top: 0; line-height: 1; text-shadow: 0 0 6px rgba(255, 236, 170, 0.8); }
 
 /* Anonymous messages: own messages on the right, the other side on the left */
 .thread { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -423,7 +480,8 @@ details.join[open] > summary { margin-bottom: 6px; }
 .send { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
 .send textarea { min-height: 64px; }
 @media (prefers-reduced-motion: reduce) {
-  .playcard .inner, .deck.done .playcard:not(.flipped) { transition: none; }
+  .playcard, .playcard .inner, .playcard::after, .playcard .face, .result.appear { animation: none !important; }
+  .deck.done .playcard:not(.flipped) { transition: none; }
 }
 
 .letter {
