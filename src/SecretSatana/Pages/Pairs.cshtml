@@ -1,0 +1,23 @@
+@page "/pairs/{token}"
+@model PairsModel
+@{
+    ViewData["Title"] = T["PairsTitle"];
+}
+
+<h1>🤫 @T["PairsTitle"]</h1>
+
+<section class="card">
+    @if (Model.Game.DrawnAt is null)
+    {
+        <p class="muted">@T["PairsNotDrawn"]</p>
+    }
+    else
+    {
+        <ul class="people">
+            @foreach (var (giver, recipient) in Model.Pairs)
+            {
+                <li><div class="name">@giver → @recipient</div></li>
+            }
+        </ul>
+    }
+</section>

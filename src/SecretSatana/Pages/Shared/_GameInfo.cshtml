@@ -1,0 +1,11 @@
+@model Game
+@if (Model.Budget is not null)
+{
+    <ul class="facts">
+        <li>💰 @T.F("BudgetIs", Model.Budget)</li>
+    </ul>
+}
+@if (Model.Note is not null)
+{
+    <p class="note text">@Fmt.Linkify(Model.Note)</p>
+}

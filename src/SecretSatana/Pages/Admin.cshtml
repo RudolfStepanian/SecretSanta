@@ -1,0 +1,138 @@
+@page "/admin/{token}"
+@model AdminModel
+@{
+    ViewData["Title"] = T["AdminTitle"];
+    var drawn = Model.Game.DrawnAt is not null;
+}
+
+<h1>🛠️ @T["AdminTitle"]</h1>
+<partial name="_GameInfo" model="Model.Game" />
+
+@if (Model.Created)
+{
+    <div class="alert warn">🔖 @T["AdminSaveLink"]</div>
+}
+@if (Model.ErrorKey is not null)
+{
+    <div class="alert err">@T[Model.ErrorKey]</div>
+}
+@if (Model.RelinkUrl is not null)
+{
+    <div class="alert ok">
+        <p>@T.F("NewLinkIssued", Model.RelinkName ?? "")</p>
+        <partial name="_Copy" model="Model.RelinkUrl" />
+    </div>
+}
+
+<section class="card">
+    <h2>✉️ @T["InviteLink"]</h2>
+    <p class="hint">@T["InviteHint"]</p>
+    <partial name="_Copy" model="@Request.Abs($"/join/{Model.Game.InviteToken}")" />
+</section>
+
+<section class="card">
+    <h2>🎲 @T["Draw"]</h2>
+    @if (drawn)
+    {
+        <p>✅ @T.F("DrawDone", Fmt.Local(Model.Game.DrawnAt!.Value))</p>
+        <p class="muted">@T["OrganizerBlind"]</p>
+        <form method="post" asp-page-handler="Undraw" data-confirm="@T["UndrawConfirm"]" class="actions">
+            <button type="submit" class="btn secondary">@T["Undraw"]</button>
+        </form>
+    }
+    else
+    {
+        <p class="muted">@T["OrganizerBlind"]</p>
+        <form method="post" asp-page-handler="Draw" data-confirm="@T["DrawConfirm"]" class="actions">
+            <button type="submit" class="btn" disabled="@(Model.People.Count < Draw.MinParticipants)">🎁 @T["Draw"]</button>
+        </form>
+        @if (Model.People.Count < Draw.MinParticipants)
+        {
+            <p class="hint">@T["DrawNeedMore"]</p>
+        }
+    }
+</section>
+
+<section class="card">
+    <h2>👥 @T["Participants"] <span class="count">@Model.People.Count</span></h2>
+    @if (Model.People.Count == 0)
+    {
+        <p class="muted">@T["NoParticipants"]</p>
+    }
+    else
+    {
+        <ul class="people">
+            @foreach (var p in Model.People)
+            {
+                <li>
+                    <div class="who">
+                        <div class="name">@p.Name</div>
+                        <div class="hint">@(p.Wishlist is null ? T["WishlistEmpty"] : T["WishlistFilled"])</div>
+                    </div>
+                    <div class="row-actions">
+                        <form method="post" asp-page-handler="Relink" asp-route-id="@p.Id" data-confirm="@T.F("NewLinkConfirm", p.Name)">
+                            <button type="submit" class="btn small secondary">@T["NewLink"]</button>
+                        </form>
+                        @if (!drawn)
+                        {
+                            <form method="post" asp-page-handler="Remove" asp-route-id="@p.Id" data-confirm="@T.F("RemoveConfirm", p.Name)">
+                                <button type="submit" class="btn small secondary danger">@T["Remove"]</button>
+                            </form>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+<section class="card">
+    <h2>🚫 @T["Exclusions"]</h2>
+    <p class="hint">@T["ExclusionsHint"]</p>
+    @if (Model.Pairs.Count == 0)
+    {
+        <p class="muted">@T["NoExclusions"]</p>
+    }
+    else
+    {
+        <ul class="people">
+            @foreach (var x in Model.Pairs)
+            {
+                <li>
+                    <div class="name">@x.A ⇄ @x.B</div>
+                    @if (!drawn)
+                    {
+                        <form method="post" asp-page-handler="Unexclude" asp-route-id="@x.Id">
+                            <button type="submit" class="btn small secondary danger">@T["Remove"]</button>
+                        </form>
+                    }
+                </li>
+            }
+        </ul>
+    }
+    @if (!drawn)
+    {
+        @if (Model.People.Count < 2)
+        {
+            <p class="hint">@T["ExclusionsNeedTwo"]</p>
+        }
+        else
+        {
+            <form method="post" asp-page-handler="Exclude" class="row">
+                <select name="a" aria-label="1">
+                    @foreach (var p in Model.People)
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </select>
+                <select name="b" aria-label="2">
+                    @foreach (var (p, i) in Model.People.Select((p, i) => (p, i)))
+                    {
+                        <option value="@p.Id" selected="@(i == 1)">@p.Name</option>
+                    }
+                </select>
+                <button type="submit" class="btn small green">@T["AddExclusion"]</button>
+            </form>
+        }
+    }
+</section>

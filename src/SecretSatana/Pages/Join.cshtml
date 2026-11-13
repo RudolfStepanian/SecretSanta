@@ -1,0 +1,50 @@
+@page "/join/{token}"
+@model JoinModel
+@{
+    ViewData["Title"] = T["JoinTitle"];
+}
+
+<h1>✉️ @T["JoinTitle"]</h1>
+<partial name="_GameInfo" model="Model.Game" />
+<p class="muted">👥 @T.F("JoinedCount", Model.Game.Participants.Count)</p>
+
+@if (Model.Existing is not null)
+{
+    <div class="alert ok">
+        <p>@T.F("AlreadyJoined", Model.Existing.Name)</p>
+        <a class="btn small green" href="/me/@Model.Existing.Token">@T["OpenMyPage"]</a>
+    </div>
+}
+
+@if (Model.Game.DrawnAt is not null)
+{
+    <div class="alert warn">@T["JoinClosed"]</div>
+}
+else
+{
+    <details class="card join" open="@(Model.Existing is null || Model.ErrorKey is not null)">
+    <summary><h2>🎅 @(Model.Existing is null ? T["JoinTitle"] : T["JoinAnother"])</h2></summary>
+    <form method="post">
+
+        <label for="name">@T["YourName"]</label>
+        <p class="hint">@T["YourNameHint"]</p>
+        <input id="name" name="Name" type="text" required maxlength="@Limits.PersonName" value="@Model.Name" autocomplete="name" />
+        @if (Model.ErrorKey is not null)
+        {
+            <p class="field-error">@T[Model.ErrorKey]</p>
+        }
+
+        <label for="wishlist">@T["Wishlist"]</label>
+        <p class="hint">@T["WishlistHint"]</p>
+        <textarea id="wishlist" name="Wishlist" maxlength="@Limits.Wishlist">@Model.Wishlist</textarea>
+
+        <label for="notwanted">@T["NotWanted"]</label>
+        <p class="hint">@T["NotWantedHint"]</p>
+        <textarea id="notwanted" name="NotWanted" maxlength="@Limits.NotWanted" class="short">@Model.NotWanted</textarea>
+
+        <div class="actions">
+            <button type="submit" class="btn">🎉 @T["JoinButton"]</button>
+        </div>
+    </form>
+    </details>
+}

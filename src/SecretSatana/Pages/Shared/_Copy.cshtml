@@ -1,0 +1,5 @@
+@model string
+<div class="copy">
+    <input type="text" readonly value="@Model" aria-label="Link" />
+    <button type="button" class="btn small green" data-copy data-copied="@T["Copied"]">@T["Copy"]</button>
+</div>

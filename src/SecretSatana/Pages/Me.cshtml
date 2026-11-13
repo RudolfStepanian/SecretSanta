@@ -1,0 +1,80 @@
+@page "/me/{token}"
+@model MeModel
+@{
+    ViewData["Title"] = Model.Me.Name;
+    var game = Model.Me.Game;
+    var recipient = game.DrawnAt is not null ? Model.Me.Recipient : null;
+}
+
+<h1>👋 @T.F("Hello", Model.Me.Name)</h1>
+<partial name="_GameInfo" model="game" />
+
+@if (Model.IsNew)
+{
+    <div class="alert warn">
+        <p>🔖 @T["SaveYourLink"] <strong>@T["DontShare"]</strong></p>
+        <partial name="_Copy" model="@Request.Abs($"/me/{Model.Me.Token}")" />
+    </div>
+}
+
+@if (recipient is null)
+{
+    <section class="card waiting">
+        <div class="big" aria-hidden="true">⏳</div>
+        <p>@T["NotDrawnYet"]</p>
+    </section>
+}
+else
+{
+    <details class="envelope">
+        <summary><span aria-hidden="true">🎁</span> @T["Reveal"]</summary>
+        <div class="letter">
+            <p class="muted">@T["YouGiveTo"]</p>
+            <p class="recipient">@recipient.Name</p>
+
+            <h3>@T["TheirWishlist"]</h3>
+            @if (recipient.Wishlist is null)
+            {
+                <p class="muted">@T["EmptyWishlist"]</p>
+            }
+            else
+            {
+                <p class="text">@Fmt.Linkify(recipient.Wishlist)</p>
+            }
+
+            @if (recipient.NotWanted is not null)
+            {
+                <h3>@T["TheirNotWanted"]</h3>
+                <p class="text">@Fmt.Linkify(recipient.NotWanted)</p>
+            }
+        </div>
+    </details>
+}
+
+<form method="post" class="card">
+    <h2>📝 @T["MyWishlist"]</h2>
+    <p class="hint">@T["MyWishlistHint"]</p>
+    @if (Model.IsSaved)
+    {
+        <div class="alert ok">✅ @T["Saved"]</div>
+    }
+
+    <label for="name">@T["YourName"]</label>
+    <input id="name" name="Name" type="text" required maxlength="@Limits.PersonName" value="@Model.Name" autocomplete="name" />
+    @if (Model.ErrorKey is not null)
+    {
+        <p class="field-error">@T[Model.ErrorKey]</p>
+    }
+
+    <label for="wishlist">@T["Wishlist"]</label>
+    <p class="hint">@T["WishlistHint"]</p>
+    <textarea id="wishlist" name="Wishlist" maxlength="@Limits.Wishlist">@Model.Wishlist</textarea>
+
+    <label for="notwanted">@T["NotWanted"]</label>
+    <p class="hint">@T["NotWantedHint"]</p>
+    <textarea id="notwanted" name="NotWanted" maxlength="@Limits.NotWanted" class="short">@Model.NotWanted</textarea>
+
+    <div class="actions">
+        <button type="submit" class="btn green">@T["Save"]</button>
+    </div>
+</form>
