@@ -136,6 +136,9 @@ namespace SecretSanta.Data.Migrations
                     b.Property<int?>("RecipientId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("RevealedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasColumnType("text");

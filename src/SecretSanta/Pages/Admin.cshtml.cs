@@ -98,7 +98,11 @@ public class AdminModel(AppDb db) : PageModel
     {
         if (!await LoadAsync(token)) return NotFound();
 
-        foreach (var p in Game.Participants) p.RecipientId = null;
+        foreach (var p in Game.Participants)
+        {
+            p.RecipientId = null;
+            p.RevealedAt = null;
+        }
         Game.DrawnAt = null;
         await db.SaveChangesAsync();
         return Back(token);

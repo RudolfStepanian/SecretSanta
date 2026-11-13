@@ -25,6 +25,7 @@ public class Participant
     public DateTime CreatedAt { get; set; }
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }
+    public DateTime? RevealedAt { get; set; }
 }
 
 public class Exclusion

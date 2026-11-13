@@ -10,5 +10,3 @@ services:
         value: "8080"
       - key: DATABASE_URL
         sync: false
-      - key: PairsKey
-        generateValue: true

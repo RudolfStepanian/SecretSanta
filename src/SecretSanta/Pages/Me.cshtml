@@ -26,8 +26,26 @@
 }
 else
 {
-    <details class="envelope">
-        <summary><span aria-hidden="true">🎁</span> @T["Reveal"]</summary>
+    var revealed = Model.Me.RevealedAt is not null;
+    @if (!revealed)
+    {
+        <section class="card">
+            <h2>🃏 @T["PickTitle"]</h2>
+            <p class="hint">@T["PickHint"]</p>
+            <form method="post" asp-page-handler="Reveal" class="deck" data-name="@recipient.Name">
+                @for (var i = 1; i < game.Participants.Count; i++)
+                {
+                    <button type="submit" class="playcard" aria-label="@T.F("CardLabel", i)">
+                        <span class="inner">
+                            <span class="back" aria-hidden="true">❄</span>
+                            <span class="face"></span>
+                        </span>
+                    </button>
+                }
+            </form>
+        </section>
+    }
+    <div class="result" id="reveal-result" hidden="@(!revealed)">
         <div class="letter">
             <p class="muted">@T["YouGiveTo"]</p>
             <p class="recipient">@recipient.Name</p>
@@ -48,7 +66,7 @@ else
                 <p class="text">@Fmt.Linkify(recipient.NotWanted)</p>
             }
         </div>
-    </details>
+    </div>
 }
 
 <form method="post" class="card">

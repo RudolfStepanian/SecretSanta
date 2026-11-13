@@ -52,6 +52,18 @@ public class MeModel(AppDb db) : PageModel
         return Redirect($"/me/{token}?saved=true");
     }
 
+    public async Task<IActionResult> OnPostRevealAsync(string token)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+
+        if (Me.Game.DrawnAt is not null && Me.RevealedAt is null)
+        {
+            Me.RevealedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        return Redirect($"/me/{token}");
+    }
+
     private async Task<bool> LoadAsync(string token)
     {
         var me = await db.Participants

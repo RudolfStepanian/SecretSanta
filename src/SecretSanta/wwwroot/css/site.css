@@ -319,39 +319,71 @@ details.join > summary h2 { margin: 0; }
 details.join:not([open]) > summary h2 { font-size: 1rem; color: var(--muted); }
 details.join[open] > summary { margin-bottom: 6px; }
 
-/* Gift box */
-.envelope { margin: 34px 0 18px; }
-.envelope summary {
-  position: relative;
-  list-style: none;
+/* Face-down cards: one click flips the chosen card, the rest fade */
+.deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.playcard {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  aspect-ratio: 3 / 4;
+  perspective: 700px;
   cursor: pointer;
-  text-align: center;
-  font-family: var(--display);
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #fff;
-  padding: 64px 20px;
-  border-radius: 16px;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 14px), var(--gold) calc(50% - 14px), var(--gold) calc(50% + 14px), transparent calc(50% + 14px)),
-    linear-gradient(0deg, transparent calc(50% - 14px), var(--gold) calc(50% - 14px), var(--gold) calc(50% + 14px), transparent calc(50% + 14px)),
-    repeating-radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.08) 0 3px, transparent 3px 18px),
-    linear-gradient(135deg, #e0344f, var(--red) 50%, var(--red-dark));
-  box-shadow: var(--shadow), inset 0 -6px 0 rgba(0, 0, 0, 0.15);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
 }
-.envelope summary::before {
-  content: "🎀";
+.playcard:disabled { cursor: default; }
+.playcard:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 12px; }
+.playcard .inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+.playcard .back,
+.playcard .face {
   position: absolute;
-  top: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 3rem;
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.3));
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 3px solid var(--gold);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
-.envelope summary::-webkit-details-marker { display: none; }
-.envelope summary:hover { filter: brightness(1.08); }
-.envelope[open] summary { display: none; }
+.playcard .back {
+  color: var(--gold-soft);
+  font-size: 1.7rem;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.12) 0 5px, transparent 5px 12px),
+    linear-gradient(135deg, #e0344f, var(--red) 55%, var(--red-dark));
+  box-shadow: inset 0 0 0 3px var(--red-dark), 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+.playcard .face {
+  padding: 6px 4px;
+  background: var(--paper);
+  color: var(--red);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.15;
+  text-align: center;
+  overflow: hidden;
+  transform: rotateY(180deg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+.playcard.flipped .inner { transform: rotateY(180deg); }
+.deck.done .playcard:not(.flipped) { opacity: 0.3; transition: opacity 0.4s ease; }
+.result { margin-top: 18px; }
+@media (prefers-reduced-motion: reduce) {
+  .playcard .inner, .deck.done .playcard:not(.flipped) { transition: none; }
+}
 
 .letter {
   position: relative;

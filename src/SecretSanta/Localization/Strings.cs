@@ -69,7 +69,12 @@ public static class Strings
         ["Hello"] = ["Привет, {0}!", "Hi, {0}!", "Բարև, {0}"],
         ["NotDrawnYet"] = ["Жеребьёвка ещё не проведена. Загляните позже: здесь появится имя вашего получателя.", "The draw hasn't taken place yet. Check back later: your recipient's name will appear here.", "Վիճակահանությունը դեռ չի անցկացվել։ Ավելի ուշ նայեք․ այստեղ կհայտնվի ձեր ստացողի անունը։"],
         ["YouGiveTo"] = ["Вы дарите подарок", "You are giving a gift to", "Դուք նվեր եք տալիս"],
-        ["Reveal"] = ["Открыть конверт", "Open the envelope", "Բացել ծրարը"],
+        ["PickTitle"] = ["Выберите карточку", "Pick a card", "Ընտրեք քարտ"],
+        ["PickHint"] = ["Переверните любую карточку: на ней имя того, кому вы дарите подарок.", "Turn over any card to see who you are giving a gift to.", "Շրջեք ցանկացած քարտ՝ տեսնելու, թե ում եք նվեր տալու։"],
+        ["CardLabel"] = ["Карточка {0}", "Card {0}", "Քարտ {0}"],
+        ["CardsOpened"] = ["Карточку открыли: {0} из {1}", "Cards opened: {0} of {1}", "Քարտը բացել են՝ {0}/{1}"],
+        ["CardOpened"] = ["карточка открыта", "card opened", "քարտը բացված է"],
+        ["CardNotOpened"] = ["карточка ещё не открыта", "card not opened yet", "քարտը դեռ բացված չէ"],
         ["TheirWishlist"] = ["Вишлист получателя", "Their wishlist", "Ստացողի ցանկությունները"],
         ["TheirNotWanted"] = ["Не дарить", "Please don't give", "Չնվիրել"],
         ["EmptyWishlist"] = ["Пусто: придётся проявить фантазию.", "Empty: time to get creative.", "Դատարկ է․ ստիպված կլինեք երևակայել։"],
@@ -79,8 +84,6 @@ public static class Strings
         ["Saved"] = ["Сохранено.", "Saved.", "Պահպանված է։"],
         ["BudgetIs"] = ["Бюджет {0}", "Budget {0}", "Բյուջե՝ {0}"],
 
-        ["PairsTitle"] = ["Кто кому дарит", "Who gives to whom", "Ով ում է նվիրում"],
-        ["PairsNotDrawn"] = ["Жеребьёвка ещё не проведена.", "The draw hasn't taken place yet.", "Վիճակահանությունը դեռ չի անցկացվել։"],
 
         ["NotFoundTitle"] = ["Ссылка не найдена", "Link not found", "Հղումը չի գտնվել"],
         ["NotFoundText"] = ["Возможно, она устарела. Спросите организатора.", "It may be outdated. Ask the organizer.", "Հնարավոր է՝ այն հնացել է։ Դիմեք կազմակերպչին։"],
