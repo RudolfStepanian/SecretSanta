@@ -1,0 +1,19 @@
+@model SecretSanta.Pages.ThreadView
+
+@if (Model.Messages.Count == 0)
+{
+    <p class="muted">@T["NoMessages"]</p>
+}
+else
+{
+    <ul class="thread">
+        @foreach (var m in Model.Messages)
+        {
+            var mine = m.FromSanta == Model.ViewerIsSanta;
+            <li class="msg @(mine ? "mine" : "theirs")">
+                <div class="meta">@(mine ? T["WhoYou"] : Model.OtherName) · @Fmt.Local(m.CreatedAt)</div>
+                <div class="text">@Fmt.Linkify(m.Text)</div>
+            </li>
+        }
+    </ul>
+}

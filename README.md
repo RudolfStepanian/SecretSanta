@@ -15,6 +15,7 @@ Rules:
 - The draw builds one random cycle through all participants, so nobody draws themselves and there are no mutual pairs.
 - Exclusions work both ways: the two people never give to each other.
 - After the draw each participant turns over one of the face-down cards on their page; any card shows the recipient the draw assigned. The organizer panel shows who has opened their card.
+- After the draw a giver can ask their recipient questions anonymously and the recipient can answer; messages are stored per recipient with only the side (Santa or recipient), never the sender's identity. Cancelling the draw deletes them.
 - Nobody, the organizer included, can see the full list of pairs. Cancelling the draw resets them and reopens joining.
 - After the draw, participants and exclusions are locked.
 - Wishlists stay editable; the giver always sees the latest version.

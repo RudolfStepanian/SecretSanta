@@ -28,6 +28,17 @@ public class Participant
     public DateTime? RevealedAt { get; set; }
 }
 
+// One thread per recipient: their Santa asks, they answer. The sender is stored only as a side, never as a person.
+public class Message
+{
+    public int Id { get; set; }
+    public int ParticipantId { get; set; }
+    public Participant Participant { get; set; } = null!;
+    public bool FromSanta { get; set; }
+    public string Text { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+}
+
 public class Exclusion
 {
     public int Id { get; set; }

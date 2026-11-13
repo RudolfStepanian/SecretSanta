@@ -8,6 +8,7 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Exclusion> Exclusions => Set<Exclusion>();
+    public DbSet<Message> Messages => Set<Message>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -31,6 +32,12 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
             e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientId).OnDelete(DeleteBehavior.SetNull);
         });
 
+        b.Entity<Message>(e =>
+        {
+            e.Property(x => x.Text).HasMaxLength(Limits.Message);
+            e.HasOne(x => x.Participant).WithMany().HasForeignKey(x => x.ParticipantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         b.Entity<Exclusion>(e =>
         {
             e.HasOne<Participant>().WithMany().HasForeignKey(x => x.FirstId).OnDelete(DeleteBehavior.Cascade);
@@ -46,6 +53,7 @@ public static class Limits
     public const int PersonName = 80;
     public const int Wishlist = 2000;
     public const int NotWanted = 1000;
+    public const int Message = 1000;
 
     public static string? Clean(string? value, int max)
     {

@@ -381,6 +381,16 @@ details.join[open] > summary { margin-bottom: 6px; }
 .playcard.flipped .inner { transform: rotateY(180deg); }
 .deck.done .playcard:not(.flipped) { opacity: 0.3; transition: opacity 0.4s ease; }
 .result { margin-top: 18px; }
+
+/* Anonymous messages: own messages on the right, the other side on the left */
+.thread { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; }
+.msg.theirs { align-self: flex-start; background: var(--frost); border-bottom-left-radius: 4px; }
+.msg.mine { align-self: flex-end; background: var(--gold-soft); border-bottom-right-radius: 4px; }
+.msg .meta { font-size: 0.78rem; color: var(--muted); margin-bottom: 2px; }
+.msg .text { margin: 0; }
+.send { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+.send textarea { min-height: 64px; }
 @media (prefers-reduced-motion: reduce) {
   .playcard .inner, .deck.done .playcard:not(.flipped) { transition: none; }
 }

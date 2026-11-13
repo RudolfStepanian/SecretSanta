@@ -98,6 +98,7 @@ public class AdminModel(AppDb db) : PageModel
     {
         if (!await LoadAsync(token)) return NotFound();
 
+        await db.Messages.Where(m => m.Participant.GameId == Game.Id).ExecuteDeleteAsync();
         foreach (var p in Game.Participants)
         {
             p.RecipientId = null;

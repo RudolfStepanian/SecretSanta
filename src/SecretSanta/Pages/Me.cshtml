@@ -4,6 +4,7 @@
     ViewData["Title"] = Model.Me.Name;
     var game = Model.Me.Game;
     var recipient = game.DrawnAt is not null ? Model.Me.Recipient : null;
+    var santaLabel = T["WhoSanta"];
 }
 
 <h1>👋 @T.F("Hello", Model.Me.Name)</h1>
@@ -15,6 +16,15 @@
         <p>🔖 @T["SaveYourLink"] <strong>@T["DontShare"]</strong></p>
         <partial name="_Copy" model="@Request.Abs($"/me/{Model.Me.Token}")" />
     </div>
+}
+
+@if (Model.SantaThread.LastOrDefault() is { FromSanta: true })
+{
+    <div class="alert ok">💬 @T["SantaWrote"] <a href="#santa">@T["ReadIt"]</a></div>
+}
+@if (Model.Me.RevealedAt is not null && Model.AskThread.LastOrDefault() is { FromSanta: false })
+{
+    <div class="alert ok">💬 @T["RecipientReplied"] <a href="#ask">@T["ReadIt"]</a></div>
 }
 
 @if (recipient is null)
@@ -66,7 +76,27 @@ else
                 <p class="text">@Fmt.Linkify(recipient.NotWanted)</p>
             }
         </div>
+
+        <section class="card" id="ask">
+            <h2>💬 @T["AskTitle"]</h2>
+            <p class="hint">@T["AskHint"]</p>
+            <partial name="_Thread" model="new ThreadView(Model.AskThread, true, recipient.Name)" />
+            <form method="post" asp-page-handler="Ask" class="send">
+                <textarea name="Text" required maxlength="@Limits.Message" class="short" placeholder="@T["AskPlaceholder"]" aria-label="@T["AskTitle"]"></textarea>
+                <button type="submit" class="btn green">@T["Send"]</button>
+            </form>
+        </section>
     </div>
+
+    <section class="card" id="santa">
+        <h2>🎅 @T["SantaTitle"]</h2>
+        <p class="hint">@T["SantaHint"]</p>
+        <partial name="_Thread" model="new ThreadView(Model.SantaThread, false, santaLabel)" />
+        <form method="post" asp-page-handler="Answer" class="send">
+            <textarea name="Text" required maxlength="@Limits.Message" class="short" placeholder="@T["AnswerPlaceholder"]" aria-label="@T["SantaTitle"]"></textarea>
+            <button type="submit" class="btn green">@T["Send"]</button>
+        </form>
+    </section>
 }
 
 <form method="post" class="card">

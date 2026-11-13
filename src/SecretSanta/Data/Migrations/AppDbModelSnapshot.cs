@@ -110,6 +110,35 @@ namespace SecretSanta.Data.Migrations
                     b.ToTable("Games");
                 });
 
+            modelBuilder.Entity("SecretSanta.Data.Message", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("FromSanta")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ParticipantId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParticipantId");
+
+                    b.ToTable("Messages");
+                });
+
             modelBuilder.Entity("SecretSanta.Data.Participant", b =>
                 {
                     b.Property<int>("Id")
@@ -178,6 +207,17 @@ namespace SecretSanta.Data.Migrations
                         .HasForeignKey("SecondId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SecretSanta.Data.Message", b =>
+                {
+                    b.HasOne("SecretSanta.Data.Participant", "Participant")
+                        .WithMany()
+                        .HasForeignKey("ParticipantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Participant");
                 });
 
             modelBuilder.Entity("SecretSanta.Data.Participant", b =>
