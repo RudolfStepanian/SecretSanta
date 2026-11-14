@@ -4,7 +4,9 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    healthCheckPath: /
+    healthCheckPath: /healthz
+    # Deploy a commit to main only after the GitHub Actions CI checks on it have passed.
+    autoDeployTrigger: checksPass
     envVars:
       - key: PORT
         value: "8080"

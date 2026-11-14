@@ -25,9 +25,11 @@ Rules:
 
 ## Stack
 
-ASP.NET Core 9 Razor Pages, EF Core with PostgreSQL, no JavaScript framework.
+ASP.NET Core 10 (LTS) Razor Pages, EF Core with PostgreSQL, no JavaScript framework.
 
-All state lives in the database, including the data-protection keys, so the app itself is stateless. Migrations are applied on startup.
+All state lives in the database, including the data-protection keys, so the app itself is stateless. Migrations are applied on startup. The startup log has one line with the time from process start until the app is ready and, separately, how long `Database.Migrate()` took (that includes the first connection to the database, so it shows a slow database wake-up).
+
+`GET /healthz` (and `HEAD`) answers `200 ok` without touching the database and with `Cache-Control: no-store`.
 
 The only setting is the database: `DATABASE_URL` (`postgres://user:password@host:port/db?sslmode=require`) or `ConnectionStrings:Default` (Npgsql format).
 
@@ -49,13 +51,34 @@ Open http://localhost:5106. `appsettings.Development.json` points at that contai
 2. Push this repository to GitHub, then in Render choose **New → Blueprint** and select the repository; `render.yaml` describes the service.
 3. Paste the connection URL into `DATABASE_URL` when Render asks for it.
 
-The free instance sleeps after 15 minutes without traffic; the first request after that takes up to a minute.
+`render.yaml` sets `autoDeployTrigger: checksPass`: a push to `main` is deployed only after the CI checks on that commit have passed. The health check is `/healthz`.
+
+### Keeping the free instance awake
+
+A free Render web service spins down after 15 minutes without incoming requests, and the next request waits about a minute while it starts again. That is fine for the organizer, but annoying when the whole team opens their links on game day.
+
+While the game is running, point an external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes during the day, for example with [cron-job.org](https://cron-job.org) and a schedule like `*/10 9-21 * * *` in the `Asia/Yerevan` time zone. `/healthz` does not touch the database, so the pings do not keep the database awake or use its quota.
+
+Don't ping around the clock: Render gives 750 free instance hours per calendar month to the whole workspace, shared by all free services in it, and a single always-on instance already uses up to 744 of them. Turn the pinger off after the game.
 
 ## Tests
 
 ```bash
 dotnet test
 ```
+
+Tests use xUnit v3 on Microsoft Testing Platform (selected in `global.json`).
+
+To check that the EF model and the migrations agree:
+
+```bash
+dotnet tool restore
+dotnet ef migrations has-pending-model-changes --project src/SecretSanta
+```
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push and pull request: restore, build with warnings as errors, tests, the EF model check, `docker build`, and a check that the image has the `Asia/Yerevan` time zone (without it dates silently fall back to UTC; the app also logs a warning at startup).
 
 ## Docker
 
