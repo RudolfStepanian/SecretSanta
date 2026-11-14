@@ -57,7 +57,23 @@ Open http://localhost:5106. `appsettings.Development.json` points at that contai
 
 A free Render web service spins down after 15 minutes without incoming requests, and the next request waits about a minute while it starts again. That is fine for the organizer, but annoying when the whole team opens their links on game day.
 
-To keep it awake, point an external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes, around the clock, for example with [cron-job.org](https://cron-job.org) (schedule `*/10 * * * *`). `/healthz` does not touch the database, so the pings do not keep the database awake or use its quota.
+To keep it awake, point an external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes, around the clock. With a Google account no extra sign-up is needed: create a project at [script.google.com](https://script.google.com), paste the code below, run `install` once and allow the requested access.
+
+```js
+const URL = 'https://<your-service>.onrender.com/healthz';
+
+function ping() {
+  UrlFetchApp.fetch(URL, { muteHttpExceptions: true, followRedirects: false });
+}
+
+// Run once: replaces any old triggers with one that calls ping() every 10 minutes.
+function install() {
+  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('ping').timeBased().everyMinutes(10).create();
+}
+```
+
+Google e-mails you if the pings start failing (the site is down or does not answer within about a minute). `/healthz` does not touch the database, so the pings do not keep the database awake or use its quota.
 
 This only works if this is the only free service in the Render workspace: Render gives 750 free instance hours per calendar month to the whole workspace, shared by all its free services, and one always-on instance uses up to 744 of them. When the hours run out, Render suspends all free services in the workspace until the start of the next month. If the workspace has other free services, ping only during the day (for example `*/10 9-21 * * *` in `Asia/Yerevan`) or move this service to a paid instance type.
 
