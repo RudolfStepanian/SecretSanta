@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
     <title>@(ViewData["Title"] is string title ? $"{title} · Secret Santa" : "Secret Santa")</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>" />
+    <link rel="icon" href="~/img/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
@@ -17,7 +17,7 @@
         }
     </div>
     <header class="top">
-        <a class="logo" href="/">🎅 Secret <span>Santa</span></a>
+        <a class="logo" href="/">Secret <span>Santa</span></a>
         <nav class="langs" aria-label="Language">
             @foreach (var lang in Languages.Menu)
             {
@@ -28,7 +28,8 @@
     <main class="wrap">
         @RenderBody()
     </main>
-    <footer class="foot">☃️ @T["Footer"] 🎄</footer>
+    <footer class="foot">@T["Footer"]</footer>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/grinch.js" asp-append-version="true"></script>
 </body>
 </html>

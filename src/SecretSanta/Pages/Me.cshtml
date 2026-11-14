@@ -7,30 +7,29 @@
     var santaLabel = T["WhoSanta"];
 }
 
-<h1>👋 @T.F("Hello", Model.Me.Name)</h1>
+<h1>@T.F("Hello", Model.Me.Name)</h1>
 <partial name="_GameInfo" model="game" />
 
 @if (Model.IsNew)
 {
     <div class="alert warn">
-        <p>🔖 @T["SaveYourLink"] <strong>@T["DontShare"]</strong></p>
+        <p>@T["SaveYourLink"] <strong>@T["DontShare"]</strong></p>
         <partial name="_Copy" model="@Request.Abs($"/me/{Model.Me.Token}")" />
     </div>
 }
 
 @if (Model.SantaThread.LastOrDefault() is { FromSanta: true })
 {
-    <div class="alert ok">💬 @T["SantaWrote"] <a href="#santa">@T["ReadIt"]</a></div>
+    <div class="alert ok">@T["SantaWrote"] <a href="#santa">@T["ReadIt"]</a></div>
 }
 @if (Model.Me.RevealedAt is not null && Model.AskThread.LastOrDefault() is { FromSanta: false })
 {
-    <div class="alert ok">💬 @T["RecipientReplied"] <a href="#ask">@T["ReadIt"]</a></div>
+    <div class="alert ok">@T["RecipientReplied"] <a href="#ask">@T["ReadIt"]</a></div>
 }
 
 @if (recipient is null)
 {
     <section class="card waiting">
-        <div class="big" aria-hidden="true">⏳</div>
         <p>@T["NotDrawnYet"]</p>
     </section>
 }
@@ -40,7 +39,7 @@ else
     @if (!revealed)
     {
         <section class="card">
-            <h2>🃏 @T["PickTitle"]</h2>
+            <h2>@T["PickTitle"]</h2>
             <p class="hint">@T["PickHint"]</p>
             <form method="post" asp-page-handler="Reveal" class="deck" data-name="@recipient.Name">
                 @for (var i = 1; i < game.Participants.Count; i++)
@@ -79,7 +78,7 @@ else
         </div>
 
         <section class="card" id="ask">
-            <h2>💬 @T["AskTitle"]</h2>
+            <h2>@T["AskTitle"]</h2>
             <p class="hint">@T["AskHint"]</p>
             <partial name="_Thread" model="new ThreadView(Model.AskThread, true, recipient.Name)" />
             <form method="post" asp-page-handler="Ask" class="send">
@@ -90,7 +89,7 @@ else
     </div>
 
     <section class="card" id="santa">
-        <h2>🎅 @T["SantaTitle"]</h2>
+        <h2>@T["SantaTitle"]</h2>
         <p class="hint">@T["SantaHint"]</p>
         <partial name="_Thread" model="new ThreadView(Model.SantaThread, false, santaLabel)" />
         <form method="post" asp-page-handler="Answer" class="send">
@@ -101,11 +100,11 @@ else
 }
 
 <form method="post" class="card">
-    <h2>📝 @T["MyWishlist"]</h2>
+    <h2>@T["MyWishlist"]</h2>
     <p class="hint">@T["MyWishlistHint"]</p>
     @if (Model.IsSaved)
     {
-        <div class="alert ok">✅ @T["Saved"]</div>
+        <div class="alert ok">@T["Saved"]</div>
     }
 
     <label for="name">@T["YourName"]</label>

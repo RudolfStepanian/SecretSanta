@@ -27,6 +27,8 @@ Rules:
 
 ASP.NET Core 10 (LTS) Razor Pages, EF Core with PostgreSQL, no JavaScript framework.
 
+The pages use no emoji. A small grinch (an original drawing, `wwwroot/js/grinch.js`) wanders over them like a desktop pet: it walks on the cards and the bottom of the window, climbs the window sides, leaps between cards and can be picked up and thrown. It is purely decorative and stays hidden for visitors who prefer reduced motion.
+
 All state lives in the database, including the data-protection keys, so the app itself is stateless. Migrations are applied on startup. The startup log has one line with the time from process start until the app is ready and, separately, how long `Database.Migrate()` took (that includes the first connection to the database, so it shows a slow database wake-up).
 
 `GET /healthz` (and `HEAD`) answers `200 ok` without touching the database and with `Cache-Control: no-store`.
