@@ -7,7 +7,13 @@ namespace SecretSanta.Services;
 
 public static partial class Fmt
 {
-    private static readonly TimeZoneInfo Zone = FindZone();
+    public const string ZoneId = "Asia/Yerevan";
+
+    private static readonly TimeZoneInfo? LocalZone = FindZone();
+    private static readonly TimeZoneInfo Zone = LocalZone ?? TimeZoneInfo.Utc;
+
+    // False when the OS has no time zone data (e.g. an image without tzdata); then dates fall back to UTC.
+    public static bool HasLocalZone => LocalZone is not null;
 
     public static string Local(DateTime utc) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zone).ToString("dd.MM.yyyy HH:mm");
@@ -32,10 +38,10 @@ public static partial class Fmt
     public static string Abs(this HttpRequest request, string path) =>
         $"{request.Scheme}://{request.Host}{request.PathBase}{path}";
 
-    private static TimeZoneInfo FindZone()
+    private static TimeZoneInfo? FindZone()
     {
-        try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Yerevan"); }
-        catch (TimeZoneNotFoundException) { return TimeZoneInfo.Utc; }
+        try { return TimeZoneInfo.FindSystemTimeZoneById(ZoneId); }
+        catch (TimeZoneNotFoundException) { return null; }
     }
 
     [GeneratedRegex(@"https?://[^\s<>""]+[^\s<>"".,;:!?)\]]", RegexOptions.IgnoreCase)]
