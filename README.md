@@ -57,9 +57,9 @@ Open http://localhost:5106. `appsettings.Development.json` points at that contai
 
 A free Render web service spins down after 15 minutes without incoming requests, and the next request waits about a minute while it starts again. That is fine for the organizer, but annoying when the whole team opens their links on game day.
 
-While the game is running, point an external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes during the day, for example with [cron-job.org](https://cron-job.org) and a schedule like `*/10 9-21 * * *` in the `Asia/Yerevan` time zone. `/healthz` does not touch the database, so the pings do not keep the database awake or use its quota.
+To keep it awake, point an external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes, around the clock, for example with [cron-job.org](https://cron-job.org) (schedule `*/10 * * * *`). `/healthz` does not touch the database, so the pings do not keep the database awake or use its quota.
 
-Don't ping around the clock: Render gives 750 free instance hours per calendar month to the whole workspace, shared by all free services in it, and a single always-on instance already uses up to 744 of them. Turn the pinger off after the game.
+This only works if this is the only free service in the Render workspace: Render gives 750 free instance hours per calendar month to the whole workspace, shared by all its free services, and one always-on instance uses up to 744 of them. When the hours run out, Render suspends all free services in the workspace until the start of the next month. If the workspace has other free services, ping only during the day (for example `*/10 9-21 * * *` in `Asia/Yerevan`) or move this service to a paid instance type.
 
 ## Tests
 
