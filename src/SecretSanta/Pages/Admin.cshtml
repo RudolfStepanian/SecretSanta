@@ -5,12 +5,12 @@
     var drawn = Model.Game.DrawnAt is not null;
 }
 
-<h1>🛠️ @T["AdminTitle"]</h1>
+<h1>@T["AdminTitle"]</h1>
 <partial name="_GameInfo" model="Model.Game" />
 
 @if (Model.Created)
 {
-    <div class="alert warn">🔖 @T["AdminSaveLink"]</div>
+    <div class="alert warn">@T["AdminSaveLink"]</div>
 }
 @if (Model.ErrorKey is not null)
 {
@@ -25,17 +25,17 @@
 }
 
 <section class="card">
-    <h2>✉️ @T["InviteLink"]</h2>
+    <h2>@T["InviteLink"]</h2>
     <p class="hint">@T["InviteHint"]</p>
     <partial name="_Copy" model="@Request.Abs($"/join/{Model.Game.InviteToken}")" />
 </section>
 
 <section class="card">
-    <h2>🎲 @T["Draw"]</h2>
+    <h2>@T["Draw"]</h2>
     @if (drawn)
     {
-        <p>✅ @T.F("DrawDone", Fmt.Local(Model.Game.DrawnAt!.Value))</p>
-        <p>🃏 @T.F("CardsOpened", Model.People.Count(p => p.RevealedAt is not null), Model.People.Count)</p>
+        <p>@T.F("DrawDone", Fmt.Local(Model.Game.DrawnAt!.Value))</p>
+        <p>@T.F("CardsOpened", Model.People.Count(p => p.RevealedAt is not null), Model.People.Count)</p>
         <p class="muted">@T["OrganizerBlind"]</p>
         <form method="post" asp-page-handler="Undraw" data-confirm="@T["UndrawConfirm"]" class="actions">
             <button type="submit" class="btn secondary">@T["Undraw"]</button>
@@ -45,7 +45,7 @@
     {
         <p class="muted">@T["OrganizerBlind"]</p>
         <form method="post" asp-page-handler="Draw" data-confirm="@T["DrawConfirm"]" class="actions">
-            <button type="submit" class="btn" disabled="@(Model.People.Count < Draw.MinParticipants)">🎁 @T["Draw"]</button>
+            <button type="submit" class="btn" disabled="@(Model.People.Count < Draw.MinParticipants)">@T["Draw"]</button>
         </form>
         @if (Model.People.Count < Draw.MinParticipants)
         {
@@ -55,7 +55,7 @@
 </section>
 
 <section class="card">
-    <h2>👥 @T["Participants"] <span class="count">@Model.People.Count</span></h2>
+    <h2>@T["Participants"] <span class="count">@Model.People.Count</span></h2>
     @if (Model.People.Count == 0)
     {
         <p class="muted">@T["NoParticipants"]</p>
@@ -94,7 +94,7 @@
 </section>
 
 <section class="card">
-    <h2>🚫 @T["Exclusions"]</h2>
+    <h2>@T["Exclusions"]</h2>
     <p class="hint">@T["ExclusionsHint"]</p>
     @if (Model.Pairs.Count == 0)
     {

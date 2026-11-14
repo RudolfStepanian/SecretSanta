@@ -4,9 +4,9 @@
     ViewData["Title"] = T["JoinTitle"];
 }
 
-<h1>✉️ @T["JoinTitle"]</h1>
+<h1>@T["JoinTitle"]</h1>
 <partial name="_GameInfo" model="Model.Game" />
-<p class="muted">👥 @T.F("JoinedCount", Model.Game.Participants.Count)</p>
+<p class="muted">@T.F("JoinedCount", Model.Game.Participants.Count)</p>
 
 @if (Model.Existing is not null)
 {
@@ -23,7 +23,7 @@
 else
 {
     <details class="card join" open="@(Model.Existing is null || Model.ErrorKey is not null)">
-    <summary><h2>🎅 @(Model.Existing is null ? T["JoinTitle"] : T["JoinAnother"])</h2></summary>
+    <summary><h2>@(Model.Existing is null ? T["JoinTitle"] : T["JoinAnother"])</h2></summary>
     <form method="post">
 
         <label for="name">@T["YourName"]</label>
@@ -43,7 +43,7 @@ else
         <textarea id="notwanted" name="NotWanted" maxlength="@Limits.NotWanted" class="short">@Model.NotWanted</textarea>
 
         <div class="actions">
-            <button type="submit" class="btn">🎉 @T["JoinButton"]</button>
+            <button type="submit" class="btn">@T["JoinButton"]</button>
         </div>
     </form>
     </details>

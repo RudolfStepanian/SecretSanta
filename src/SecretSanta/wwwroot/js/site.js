@@ -21,7 +21,8 @@ function sparkle(card) {
   const layer = document.createElement('div');
   layer.className = 'sparkles';
   layer.style.transform = `translate(${box.left + box.width / 2}px, ${box.top + box.height / 2}px)`;
-  const shapes = ['✦', '❄', '★', '●', '✦', '❅'];
+  // U+FE0E keeps the snowflake a text glyph: some phones would draw it as an emoji.
+  const shapes = ['✦', '❄︎', '★', '●', '✦', '❅'];
   const colors = ['#f6e2a8', '#e6b84a', '#ffffff', '#e0344f', '#47e08e', '#9fd3ff'];
   for (let i = 0; i < 26; i++) {
     const piece = document.createElement('span');
