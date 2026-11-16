@@ -24,13 +24,22 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 
 var app = builder.Build();
 
-// The first connection to the database is part of this, so on a cold start it shows how long the database took to wake up.
-var migration = Stopwatch.StartNew();
+// Timed separately: building the EF model is CPU only (slow on a 0.1 CPU instance), the first connection includes
+// waking a suspended Neon compute, and Migrate is the migrations check itself.
+long modelMs, connectMs, migrateMs;
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<AppDb>().Database.Migrate();
+    var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+    var step = Stopwatch.StartNew();
+    _ = db.Model;
+    modelMs = step.ElapsedMilliseconds;
+    step.Restart();
+    db.Database.OpenConnection();
+    connectMs = step.ElapsedMilliseconds;
+    step.Restart();
+    db.Database.Migrate();
+    migrateMs = step.ElapsedMilliseconds;
 }
-migration.Stop();
 
 if (!Fmt.HasLocalZone) app.Logger.LogWarning("Time zone {Zone} was not found; dates are shown in UTC.", Fmt.ZoneId);
 
@@ -39,8 +48,8 @@ app.Lifetime.ApplicationStarted.Register(() =>
     using var process = Process.GetCurrentProcess();
     var startup = DateTime.UtcNow - process.StartTime.ToUniversalTime();
     app.Logger.LogInformation(
-        "Started in {StartupMs} ms from process start; Database.Migrate() took {MigrateMs} ms.",
-        (long)startup.TotalMilliseconds, migration.ElapsedMilliseconds);
+        "Started in {StartupMs} ms from process start; EF model {ModelMs} ms, first database connection {ConnectMs} ms, Database.Migrate() {MigrateMs} ms.",
+        (long)startup.TotalMilliseconds, modelMs, connectMs, migrateMs);
 });
 
 app.UseForwardedHeaders();

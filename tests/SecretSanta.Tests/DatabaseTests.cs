@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Npgsql;
 using SecretSanta.Data;
 
@@ -26,6 +27,20 @@ public class DatabaseTests
         var cs = new NpgsqlConnectionStringBuilder(Database.FromUrl("postgres://u:p@dpg-x-a.oregon-postgres.render.com:6543/santa"));
 
         Assert.Equal(6543, cs.Port);
+        Assert.Equal("santa", cs.Database);
+    }
+
+    [Theory]
+    [InlineData("DATABASE_URL", "postgres://u:p@db.example/santa?sslmode=require")]
+    [InlineData("ConnectionStrings:Default", "Host=db.example;Database=santa;Username=u;Password=p")]
+    public void Gss_encryption_is_off_whatever_the_source(string key, string value)
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection([new(key, value)]).Build();
+
+        var cs = new NpgsqlConnectionStringBuilder(Database.ConnectionString(config));
+
+        Assert.Equal(GssEncryptionMode.Disable, cs.GssEncryptionMode);
+        Assert.Equal("db.example", cs.Host);
         Assert.Equal("santa", cs.Database);
     }
 }

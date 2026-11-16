@@ -5,11 +5,14 @@ namespace SecretSanta.Data;
 public static class Database
 {
     // DATABASE_URL (postgres://user:pass@host:port/db?sslmode=require, as Render and Neon give it) wins over ConnectionStrings:Default.
+    // GSS encryption is off: neither Neon nor a local Postgres uses Kerberos, and on Linux Npgsql would otherwise try to load
+    // libgssapi_krb5, which the runtime image does not ship, and log an error on every start.
     public static string ConnectionString(IConfiguration config)
     {
-        if (config["DATABASE_URL"] is { Length: > 0 } url) return FromUrl(url);
-        return config.GetConnectionString("Default")
-            ?? throw new InvalidOperationException("Set DATABASE_URL or ConnectionStrings:Default.");
+        var raw = config["DATABASE_URL"] is { Length: > 0 } url
+            ? FromUrl(url)
+            : config.GetConnectionString("Default") ?? throw new InvalidOperationException("Set DATABASE_URL or ConnectionStrings:Default.");
+        return new NpgsqlConnectionStringBuilder(raw) { GssEncryptionMode = GssEncryptionMode.Disable }.ConnectionString;
     }
 
     public static string FromUrl(string url)
