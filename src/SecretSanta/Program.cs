@@ -13,6 +13,8 @@ builder.Services.AddDataProtection()
     .PersistKeysToDbContext<AppDb>()
     .SetApplicationName("SecretSanta");
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+builder.Services.AddHostedService<KeepAwake>();
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
