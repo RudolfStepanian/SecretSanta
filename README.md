@@ -61,7 +61,9 @@ Open http://localhost:5106. `appsettings.Development.json` points at that contai
 
 A free Render web service spins down after 15 minutes without incoming requests, and the next request waits about a minute while it starts again. That is fine for the organizer, but annoying when the whole team opens their links on game day.
 
-To keep it awake, point an external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes, around the clock. With a Google account no extra sign-up is needed: create a project at [script.google.com](https://script.google.com), paste the code below, run `install` once and allow the requested access.
+`.github/workflows/keep-awake.yml` keeps it awake: a scheduled GitHub Actions run requests `/healthz` every 5 minutes (GitHub can delay scheduled runs, so the interval is well under 15 minutes). Change `HEALTHZ_URL` there if the service moves. GitHub e-mails you when a scheduled run fails, and it pauses scheduled workflows in a public repository after 60 days without activity.
+
+Alternatively, point any external uptime pinger at `https://<your-service>.onrender.com/healthz` every 10 minutes, around the clock. With a Google account no extra sign-up is needed: create a project at [script.google.com](https://script.google.com), paste the code below, run `install` once and allow the requested access.
 
 ```js
 const URL = 'https://<your-service>.onrender.com/healthz';

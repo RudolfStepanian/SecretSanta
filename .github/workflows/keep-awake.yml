@@ -1,0 +1,22 @@
+name: Keep awake
+
+# Render's free instance spins down after 15 minutes without requests, and waking it takes about a minute.
+# A request to /healthz every 5 minutes keeps it up; /healthz does not touch the database.
+# GitHub can delay scheduled runs, hence 5 minutes rather than 14, and off the top of the hour, when it is busiest.
+on:
+  schedule:
+    - cron: '3-58/5 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  HEALTHZ_URL: https://secretsanta-b49y.onrender.com/healthz
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /healthz
+        run: curl --fail --silent --show-error --max-time 120 --retry 2 --retry-delay 15 --retry-all-errors "$HEALTHZ_URL"
