@@ -26,6 +26,9 @@ public class Participant
     public string? PasswordHash { get; set; }
     public int FailedLogins { get; set; }
     public DateTime? LockedUntil { get; set; }
+    // The one-time link from a password reset, and when it was opened: opened again, the link shows that time.
+    public string? ResetToken { get; set; }
+    public DateTime? ResetUsedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }

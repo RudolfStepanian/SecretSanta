@@ -119,13 +119,15 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         var person = Game.Participants.FirstOrDefault(p => p.Id == id);
         if (person is not null)
         {
-            person.Token = Tokens.New();
+            person.Token = Tokens.New(); // signs the participant out on every device
+            person.ResetToken = Tokens.New();
+            person.ResetUsedAt = null;
             person.PasswordHash = null;
             person.FailedLogins = 0;
             person.LockedUntil = null;
             await db.SaveChangesAsync();
             ResetName = person.Name;
-            ResetUrl = Request.Abs($"/me/{person.Token}");
+            ResetUrl = Request.Abs($"/me/{person.ResetToken}");
         }
         return Back(token);
     }

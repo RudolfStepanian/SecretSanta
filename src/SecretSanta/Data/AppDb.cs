@@ -33,6 +33,7 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
             e.Property(x => x.Wishlist).HasMaxLength(Limits.Wishlist);
             e.Property(x => x.NotWanted).HasMaxLength(Limits.NotWanted);
             e.HasIndex(x => x.Token).IsUnique();
+            e.HasIndex(x => x.ResetToken).IsUnique();
             e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientId).OnDelete(DeleteBehavior.SetNull);
         });
 

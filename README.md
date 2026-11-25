@@ -22,7 +22,7 @@ Rules:
 - A login is 3 to 32 Latin letters, digits, dots, hyphens or underscores, unique within a game and case-insensitive. Participants who joined before logins existed sign in with their name until they choose a login on their page.
 - Passwords are stored as salted PBKDF2 hashes (ASP.NET Core `PasswordHasher`). Five wrong passwords in a row lock the participant for 15 minutes.
 - A device stays signed in to a game (one cookie per game) until the participant signs out at the bottom of their page.
-- A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password.
+- A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password. The link signs in only once; opened again, it says when it was opened, so a participant can tell that someone else used it first.
 - Personal links from before passwords (`/me/{token}`) still sign the device in; the page then asks for a login and a password, and once they are set the link stops working.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 
