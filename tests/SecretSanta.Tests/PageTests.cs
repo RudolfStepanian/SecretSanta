@@ -30,7 +30,7 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
     public async Task The_recipient_is_in_the_page_only_after_the_card_is_opened()
     {
         SantaApp.SkipWithoutDatabase();
-        var game = await GameAsync(["Arpi", "Babken", "Chamich"], draw: true);
+        var game = await Games.NewAsync(app, ["Arpi", "Babken", "Chamich"], draw: true);
         var play = $"/play/{game.Invite}";
 
         // With JavaScript: the card animation fetches the recipient's part of the page.
@@ -63,11 +63,11 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
     public async Task A_reset_closes_the_card_and_the_participant_sees_the_resets()
     {
         SantaApp.SkipWithoutDatabase();
-        var game = await GameAsync(["Davit", "Eva", "Gor"], draw: true);
+        var game = await Games.NewAsync(app, ["Davit", "Eva", "Gor"], draw: true);
         var play = $"/play/{game.Invite}";
         await game.People["Davit"].PostAsync(play, play + "?handler=Reveal", []);
 
-        var reset = await game.Organizer.PostAsync(game.Admin, $"{game.Admin}?handler=Reset&id={await IdAsync("davit")}", []);
+        var reset = await game.Organizer.PostAsync(game.Admin, $"{game.Admin}?handler=Reset&id={await Games.IdAsync(app, "davit")}", []);
         Assert.Equal(HttpStatusCode.Redirect, reset.StatusCode);
         var link = Regex.Match(await game.Organizer.PageAsync(game.Admin), "/me/[A-Za-z0-9_-]+").Value;
         var device = await Browser.OpenAsync(app);
@@ -83,7 +83,7 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
     public async Task The_organizer_changes_budget_and_note_after_the_draw()
     {
         SantaApp.SkipWithoutDatabase();
-        var game = await GameAsync(["Hayk", "Iren", "Karen"], draw: true);
+        var game = await Games.NewAsync(app, ["Hayk", "Iren", "Karen"], draw: true);
 
         var save = await game.Organizer.PostAsync(game.Admin, game.Admin + "?handler=Info", new() { ["budget"] = "20000 AMD", ["note"] = "Moved to Friday" });
         Assert.Equal(HttpStatusCode.Redirect, save.StatusCode);
@@ -108,7 +108,7 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
     public async Task A_game_takes_at_most_200_participants()
     {
         SantaApp.SkipWithoutDatabase();
-        var game = await GameAsync([], draw: false);
+        var game = await Games.NewAsync(app, [], draw: false);
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
@@ -122,48 +122,11 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
 
         var late = await Browser.OpenAsync(app);
         var join = $"/join/{game.Invite}";
-        var response = await late.PostAsync(join, join, Fields("Latecomer"));
+        var response = await late.PostAsync(join, join, Games.JoinFields("Latecomer"));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("The game already has 200 participants", await response.Content.ReadAsStringAsync(Ct));
-        Assert.Null(await IdAsync("latecomer"));
-    }
-
-    private async Task<(Browser Organizer, string Admin, string Invite, Dictionary<string, Browser> People)> GameAsync(string[] names, bool draw)
-    {
-        var organizer = await Browser.OpenAsync(app);
-        var created = await organizer.PostAsync("/", "/", new() { ["Budget"] = "100", ["Note"] = "Party" });
-        Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
-        var admin = created.Headers.Location!.OriginalString.Split('?')[0];
-        var invite = Regex.Match(await organizer.PageAsync(admin), "/join/([A-Za-z0-9_-]+)").Groups[1].Value;
-
-        var people = new Dictionary<string, Browser>();
-        foreach (var name in names)
-        {
-            var person = await Browser.OpenAsync(app);
-            var joined = await person.PostAsync($"/join/{invite}", $"/join/{invite}", Fields(name));
-            Assert.Equal(HttpStatusCode.Redirect, joined.StatusCode);
-            people[name] = person;
-        }
-        if (draw) Assert.Equal(HttpStatusCode.Redirect, (await organizer.PostAsync(admin, admin + "?handler=Draw", [])).StatusCode);
-        return (organizer, admin, invite, people);
-    }
-
-    private static Dictionary<string, string> Fields(string name) => new()
-    {
-        ["Name"] = name,
-        ["Login"] = name.ToLowerInvariant(),
-        ["Password"] = "secret-1",
-        ["PasswordRepeat"] = "secret-1",
-        ["Wishlist"] = $"{name} wants a scarf",
-        ["NotWanted"] = "",
-    };
-
-    private async Task<int?> IdAsync(string login)
-    {
-        await using var scope = app.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        return await db.Participants.Where(p => p.Login == login).Select(p => (int?)p.Id).SingleOrDefaultAsync(Ct);
+        Assert.Null(await Games.IdAsync(app, "latecomer"));
     }
 }
 

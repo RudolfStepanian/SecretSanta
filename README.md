@@ -32,7 +32,7 @@ Rules:
 
 ## Notifications
 
-Participants can turn on browser push notifications on their own page. A notification arrives when the organizer runs the draw, when a participant's Secret Santa asks them something, and when their recipient replies. The texts name nobody, and the organizer panel shows who has notifications on.
+Participants can turn on browser push notifications on their own page. A notification arrives when the organizer runs the draw or cancels it, when a participant's Secret Santa asks them something, and when their recipient replies. The texts name nobody, and the organizer panel shows who has notifications on.
 
 - Web Push is implemented with the platform's own crypto (`Services/WebPush.cs`: RFC 8291 encryption, RFC 8292 VAPID); the tests check the encryption against the RFC 8291 example. The VAPID key pair is created on the first start and kept in the database (`Settings`), so subscriptions survive restarts and deploys.
 - Messages are sent in the background (`PushQueue`, `PushDelivery`); a subscription the push service reports as gone is deleted. Only the browsers' push services (Google, Mozilla, Microsoft, Apple) are accepted as endpoints.

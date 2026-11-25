@@ -112,6 +112,7 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
     public async Task<IActionResult> OnPostUndrawAsync(string token)
     {
         if (!await LoadAsync(token)) return NotFound();
+        var wasDrawn = Game.DrawnAt is not null;
 
         await db.Messages.Where(m => m.Participant.GameId == Game.Id).ExecuteDeleteAsync();
         foreach (var p in Game.Participants)
@@ -121,6 +122,7 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         }
         Game.DrawnAt = null;
         await db.SaveChangesAsync();
+        if (wasDrawn) await notifier.NotifyAsync(Game.Participants.Select(p => p.Id).ToList(), "PushDrawCancelled", Request, $"/play/{Game.InviteToken}");
         return Back(token);
     }
 

@@ -2,7 +2,11 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
+using SecretSanta.Services;
 
 namespace SecretSanta.Tests;
 
@@ -35,6 +39,9 @@ public sealed class SantaApp : WebApplicationFactory<Program>, IAsyncLifetime
             Database = database,
             GssEncryptionMode = GssEncryptionMode.Disable,
         }.ConnectionString);
+        // Push messages stay in the queue, where tests read them, instead of going to the browsers' push services.
+        builder.ConfigureTestServices(services => services.Remove(
+            services.Single(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(PushDelivery))));
     }
 
     public override async ValueTask DisposeAsync()

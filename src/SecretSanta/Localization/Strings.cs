@@ -110,6 +110,7 @@ public static class Strings
         ["NotifyMark"] = ["уведомления включены", "notifications on", "ծանուցումները միացված են"],
         ["PushTitle"] = ["Тайный Санта", "Secret Santa", "Գաղտնի Ձմեռ պապ"],
         ["PushDrawDone"] = ["Жеребьёвка проведена! Откройте свою страницу и узнайте, кому дарите.", "The draw is done! Open your page to see who you give to.", "Վիճակահանությունն անցկացվել է։ Բացեք ձեր էջը և իմացեք, թե ում եք նվեր տալու։"],
+        ["PushDrawCancelled"] = ["Жеребьёвку отменили: пары и переписка сброшены. Когда организатор проведёт её снова, придёт новое уведомление.", "The draw was cancelled: the pairs and messages are reset. You'll get a new notification when the organizer runs it again.", "Վիճակահանությունը չեղարկվել է․ զույգերն ու նամակագրությունը զրոյացվել են։ Երբ կազմակերպիչը նորից անցկացնի այն, նոր ծանուցում կստանաք։"],
         ["PushTest"] = ["Уведомления работают.", "Notifications work.", "Ծանուցումներն աշխատում են։"],
         ["Hello"] = ["Привет, {0}!", "Hi, {0}!", "Բարև, {0}"],
         ["NotDrawnYet"] = ["Жеребьёвка ещё не проведена. Загляните позже: здесь появится имя вашего получателя.", "The draw hasn't taken place yet. Check back later: your recipient's name will appear here.", "Վիճակահանությունը դեռ չի անցկացվել։ Ավելի ուշ նայեք․ այստեղ կհայտնվի ձեր ստացողի անունը։"],
