@@ -22,6 +22,9 @@ public class Participant
     public string? Wishlist { get; set; }
     public string? NotWanted { get; set; }
     public string Token { get; set; } = "";
+    public string? PasswordHash { get; set; }
+    public int FailedLogins { get; set; }
+    public DateTime? LockedUntil { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }

@@ -229,7 +229,7 @@ p { margin: 0 0 10px; }
 label { display: block; font-weight: 600; margin: 16px 0 6px; }
 label + .hint { margin-top: -4px; }
 
-input[type="text"], input[type="date"], textarea, select {
+input[type="text"], input[type="password"], input[type="date"], textarea, select {
   width: 100%;
   font: inherit;
   color: inherit;

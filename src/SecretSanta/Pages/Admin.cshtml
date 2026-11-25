@@ -16,11 +16,11 @@
 {
     <div class="alert err">@T[Model.ErrorKey]</div>
 }
-@if (Model.RelinkUrl is not null)
+@if (Model.ResetUrl is not null)
 {
     <div class="alert ok">
-        <p>@T.F("NewLinkIssued", Model.RelinkName ?? "")</p>
-        <partial name="_Copy" model="Model.RelinkUrl" />
+        <p>@T.F("ResetIssued", Model.ResetName ?? "")</p>
+        <partial name="_Copy" model="Model.ResetUrl" />
     </div>
 }
 
@@ -70,6 +70,10 @@
                         <div class="name">@p.Name</div>
                         <div class="hint">
                             @(p.Wishlist is null ? T["WishlistEmpty"] : T["WishlistFilled"])
+                            @if (p.PasswordHash is null)
+                            {
+                                <text> · @T["NoPassword"]</text>
+                            }
                             @if (drawn)
                             {
                                 <text> · @(p.RevealedAt is null ? T["CardNotOpened"] : T["CardOpened"])</text>
@@ -77,8 +81,8 @@
                         </div>
                     </div>
                     <div class="row-actions">
-                        <form method="post" asp-page-handler="Relink" asp-route-id="@p.Id" data-confirm="@T.F("NewLinkConfirm", p.Name)">
-                            <button type="submit" class="btn small secondary">@T["NewLink"]</button>
+                        <form method="post" asp-page-handler="Reset" asp-route-id="@p.Id" data-confirm="@T.F("ResetConfirm", p.Name)">
+                            <button type="submit" class="btn small secondary">@T["ResetPassword"]</button>
                         </form>
                         @if (!drawn)
                         {

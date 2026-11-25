@@ -2,6 +2,7 @@
 @model JoinModel
 @{
     ViewData["Title"] = T["JoinTitle"];
+    var drawn = Model.Game.DrawnAt is not null;
 }
 
 <h1>@T["JoinTitle"]</h1>
@@ -12,17 +13,37 @@
 {
     <div class="alert ok">
         <p>@T.F("AlreadyJoined", Model.Existing.Name)</p>
-        <a class="btn small green" href="/me/@Model.Existing.Token">@T["OpenMyPage"]</a>
+        <a class="btn small green" href="/play/@Model.Game.InviteToken">@T["OpenMyPage"]</a>
     </div>
 }
 
-@if (Model.Game.DrawnAt is not null)
+@if (drawn)
 {
     <div class="alert warn">@T["JoinClosed"]</div>
 }
-else
+
+<details class="card join" open="@(Model.LoginErrorKey is not null || (Model.Existing is null && drawn))">
+    <summary><h2>@T["LoginTitle"]</h2></summary>
+    <form method="post" asp-page-handler="Login">
+        <label for="login-name">@T["YourName"]</label>
+        <input id="login-name" name="LoginName" type="text" required maxlength="@Limits.PersonName" value="@Model.LoginName" autocomplete="username" />
+
+        <label for="login-password">@T["Password"]</label>
+        <input id="login-password" name="LoginPassword" type="password" required maxlength="@Limits.Password" autocomplete="current-password" />
+        @if (Model.LoginErrorKey is not null)
+        {
+            <p class="field-error">@T[Model.LoginErrorKey]</p>
+        }
+
+        <div class="actions">
+            <button type="submit" class="btn green">@T["LoginButton"]</button>
+        </div>
+    </form>
+</details>
+
+@if (!drawn)
 {
-    <details class="card join" open="@(Model.Existing is null || Model.ErrorKey is not null)">
+    <details class="card join" open="@(Model.Existing is null || Model.ErrorKey is not null || Model.PasswordErrorKey is not null)">
     <summary><h2>@(Model.Existing is null ? T["JoinTitle"] : T["JoinAnother"])</h2></summary>
     <form method="post">
 
@@ -32,6 +53,17 @@ else
         @if (Model.ErrorKey is not null)
         {
             <p class="field-error">@T[Model.ErrorKey]</p>
+        }
+
+        <label for="password">@T["Password"]</label>
+        <p class="hint">@T["PasswordHint"]</p>
+        <input id="password" name="Password" type="password" required minlength="@Limits.PasswordMin" maxlength="@Limits.Password" autocomplete="new-password" />
+
+        <label for="password-repeat">@T["PasswordRepeat"]</label>
+        <input id="password-repeat" name="PasswordRepeat" type="password" required minlength="@Limits.PasswordMin" maxlength="@Limits.Password" autocomplete="new-password" />
+        @if (Model.PasswordErrorKey is not null)
+        {
+            <p class="field-error">@T[Model.PasswordErrorKey]</p>
         }
 
         <label for="wishlist">@T["Wishlist"]</label>

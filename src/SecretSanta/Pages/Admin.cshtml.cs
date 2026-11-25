@@ -13,8 +13,8 @@ public class AdminModel(AppDb db) : PageModel
     public List<(int Id, string A, string B)> Pairs { get; private set; } = [];
     public bool Created { get; private set; }
     [TempData] public string? ErrorKey { get; set; }
-    [TempData] public string? RelinkName { get; set; }
-    [TempData] public string? RelinkUrl { get; set; }
+    [TempData] public string? ResetName { get; set; }
+    [TempData] public string? ResetUrl { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string token, bool created = false)
     {
@@ -109,7 +109,8 @@ public class AdminModel(AppDb db) : PageModel
         return Back(token);
     }
 
-    public async Task<IActionResult> OnPostRelinkAsync(string token, int id)
+    // Signs the participant out everywhere and gives the organizer a one-time link for setting a new password.
+    public async Task<IActionResult> OnPostResetAsync(string token, int id)
     {
         if (!await LoadAsync(token)) return NotFound();
 
@@ -117,9 +118,12 @@ public class AdminModel(AppDb db) : PageModel
         if (person is not null)
         {
             person.Token = Tokens.New();
+            person.PasswordHash = null;
+            person.FailedLogins = 0;
+            person.LockedUntil = null;
             await db.SaveChangesAsync();
-            RelinkName = person.Name;
-            RelinkUrl = Request.Abs($"/me/{person.Token}");
+            ResetName = person.Name;
+            ResetUrl = Request.Abs($"/me/{person.Token}");
         }
         return Back(token);
     }

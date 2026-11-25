@@ -54,6 +54,8 @@ public static class Limits
     public const int Wishlist = 2000;
     public const int NotWanted = 1000;
     public const int Message = 1000;
+    public const int PasswordMin = 6;
+    public const int Password = 100;
 
     public static string? Clean(string? value, int max)
     {

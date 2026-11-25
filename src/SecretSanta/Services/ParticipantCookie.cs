@@ -1,6 +1,7 @@
 namespace SecretSanta.Services;
 
-// Remembers the participant on this device so a lost personal link can be recovered from the invite link.
+// Keeps a participant signed in on this device: one cookie per game, holding the participant's token.
+// Resetting the password or setting a new one changes the token, which signs the participant out everywhere else.
 public static class ParticipantCookie
 {
     private static string Name(int gameId) => $"ss_{gameId}";
@@ -16,4 +17,6 @@ public static class ParticipantCookie
             IsEssential = true,
             Secure = response.HttpContext.Request.IsHttps,
         });
+
+    public static void Clear(HttpResponse response, int gameId) => response.Cookies.Delete(Name(gameId));
 }

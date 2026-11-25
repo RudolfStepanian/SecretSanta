@@ -1,4 +1,4 @@
-@page "/me/{token}"
+@page "/play/{invite}"
 @model MeModel
 @{
     ViewData["Title"] = Model.Me.Name;
@@ -12,10 +12,33 @@
 
 @if (Model.IsNew)
 {
-    <div class="alert warn">
-        <p>@T["SaveYourLink"] <strong>@T["DontShare"]</strong></p>
-        <partial name="_Copy" model="@Request.Abs($"/me/{Model.Me.Token}")" />
-    </div>
+    <div class="alert ok">@T["Welcome"]</div>
+}
+@if (Model.PasswordSaved)
+{
+    <div class="alert ok">@T["PasswordSet"]</div>
+}
+@if (Model.Me.PasswordHash is null)
+{
+    <form method="post" asp-page-handler="Password" class="card">
+        <h2>@T["SetPasswordTitle"]</h2>
+        <p class="hint">@T["SetPasswordHint"]</p>
+
+        <label for="password">@T["Password"]</label>
+        <p class="hint">@T["PasswordHint"]</p>
+        <input id="password" name="Password" type="password" required minlength="@Limits.PasswordMin" maxlength="@Limits.Password" autocomplete="new-password" />
+
+        <label for="password-repeat">@T["PasswordRepeat"]</label>
+        <input id="password-repeat" name="PasswordRepeat" type="password" required minlength="@Limits.PasswordMin" maxlength="@Limits.Password" autocomplete="new-password" />
+        @if (Model.PasswordErrorKey is not null)
+        {
+            <p class="field-error">@T[Model.PasswordErrorKey]</p>
+        }
+
+        <div class="actions">
+            <button type="submit" class="btn green">@T["Save"]</button>
+        </div>
+    </form>
 }
 
 @if (Model.SantaThread.LastOrDefault() is { FromSanta: true })
@@ -125,4 +148,8 @@ else
     <div class="actions">
         <button type="submit" class="btn green">@T["Save"]</button>
     </div>
+</form>
+
+<form method="post" asp-page-handler="Logout" class="actions">
+    <button type="submit" class="btn small secondary">@T["Logout"]</button>
 </form>
