@@ -127,6 +127,15 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         return Back(token);
     }
 
+    // Deletes the game with everything in it; the organizer lands on the home page.
+    public async Task<IActionResult> OnPostDeleteAsync(string token)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+
+        await GameCleanup.DeleteAsync(db, Game.Id);
+        return Redirect("/?deleted=true");
+    }
+
     // Signs the participant out everywhere and gives the organizer a one-time link for setting a new password.
     public async Task<IActionResult> OnPostResetAsync(string token, int id)
     {

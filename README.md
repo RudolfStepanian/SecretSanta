@@ -28,6 +28,7 @@ Rules:
 - Until a participant opens their card, their page holds neither the recipient's name nor the wishlist nor the messages: the card animation fetches that part when the card is opened (without JavaScript the form post opens the card).
 - The organizer can change the budget and the note at any time, also after the draw.
 - Once their card is open, a Santa can mark the gift as ready and take the mark back. The organizer panel shows how many gifts are ready and a mark next to each participant, never who the gift is for. Cancelling the draw clears the marks.
+- The organizer can delete the game with everything in it. Otherwise a game is deleted automatically 60 days after the draw, or 120 days after it was created if there was no draw; the panel shows the date. Expired games are removed shortly after the app starts and then once a day (`Services/GameCleanup.cs`), so a sleeping instance catches up when it wakes.
 - Form posts are rate-limited per IP and kind of action (`Services/RateLimits.cs`), generously enough for a whole office behind one IP; a game takes at most 200 participants. Pages send a Content-Security-Policy that allows only this site (plus `data:` images) and `X-Content-Type-Options: nosniff`.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 

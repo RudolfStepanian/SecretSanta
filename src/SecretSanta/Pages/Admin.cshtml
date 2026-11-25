@@ -173,3 +173,11 @@
         }
     }
 </section>
+
+<section class="card" id="delete">
+    <h2>@T["DeleteTitle"]</h2>
+    <p class="hint">@T.F("AutoDeleteOn", Fmt.Local(GameCleanup.DeleteAt(Model.Game)), GameCleanup.DaysAfterDraw, GameCleanup.DaysWithoutDraw)</p>
+    <form method="post" asp-page-handler="Delete" data-confirm="@T["DeleteConfirm"]" class="actions">
+        <button type="submit" class="btn small secondary danger">@T["DeleteGame"]</button>
+    </form>
+</section>

@@ -60,6 +60,11 @@ public static class Strings
         ["DrawDone"] = ["Жеребьёвка проведена {0}. Каждый видит своего получателя на своей странице.", "The draw took place on {0}. Everyone sees their recipient on their own page.", "Վիճակահանությունն անցկացվել է {0}։ Յուրաքանչյուրն իր ստացողին տեսնում է իր էջում։"],
         ["Undraw"] = ["Отменить жеребьёвку", "Cancel the draw", "Չեղարկել վիճակահանությունը"],
         ["UndrawConfirm"] = ["Отменить жеребьёвку? Пары сбросятся, и присоединиться снова будет можно.", "Cancel the draw? All pairs are reset and joining opens again.", "Չեղարկե՞լ վիճակահանությունը։ Զույգերը կչեղարկվեն, և կրկին հնարավոր կլինի միանալ։"],
+        ["DeleteTitle"] = ["Удаление игры", "Deleting the game", "Խաղի ջնջում"],
+        ["AutoDeleteOn"] = ["Игра удалится автоматически {0}: через {1} дней после жеребьёвки, а если её не было — через {2} дней после создания.", "The game will be deleted automatically on {0}: {1} days after the draw, or {2} days after it was created if there was no draw.", "Խաղը ավտոմատ կջնջվի {0}․ վիճակահանությունից {1} օր անց, իսկ եթե այն չի եղել՝ ստեղծումից {2} օր անց։"],
+        ["DeleteGame"] = ["Удалить игру", "Delete the game", "Ջնջել խաղը"],
+        ["DeleteConfirm"] = ["Удалить игру навсегда? Участники, исключения, переписка и подписки на уведомления удалятся, восстановить их будет нельзя.", "Delete the game for good? Participants, exclusions, messages and notification subscriptions are deleted and can't be restored.", "Ջնջե՞լ խաղը ընդմիշտ։ Մասնակիցները, բացառությունները, նամակագրությունը և ծանուցումների բաժանորդագրությունները կջնջվեն, և դրանք վերականգնել հնարավոր չի լինի։"],
+        ["GameDeleted"] = ["Игра удалена.", "The game has been deleted.", "Խաղը ջնջված է։"],
         ["OrganizerBlind"] = ["Пары не видны даже вам: сюрприз для всех.", "Even you can't see the pairs: it's a surprise for everyone.", "Զույգերը տեսանելի չեն նույնիսկ ձեզ․ անակնկալ է բոլորի համար։"],
         ["LockedAfterDraw"] = ["После жеребьёвки состав и исключения менять нельзя. Сначала отмените жеребьёвку.", "After the draw, participants and exclusions are locked. Cancel the draw first.", "Վիճակահանությունից հետո մասնակիցներին և բացառությունները փոխել հնարավոր չէ։ Նախ չեղարկեք վիճակահանությունը։"],
 

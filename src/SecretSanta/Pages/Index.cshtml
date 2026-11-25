@@ -9,6 +9,11 @@
     <p>@T["Tagline"]</p>
 </section>
 
+@if (Model.Deleted)
+{
+    <div class="alert ok">@T["GameDeleted"]</div>
+}
+
 <section class="card">
     <h2>@T["HowItWorks"]</h2>
     <ol class="steps">

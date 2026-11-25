@@ -23,6 +23,7 @@ builder.Services.AddSingleton(services =>
 builder.Services.AddSingleton<PushQueue>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddHostedService<PushDelivery>();
+builder.Services.AddHostedService<GameCleanupService>();
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();
 builder.Services.AddRateLimiter(o =>

@@ -10,9 +10,9 @@ public class IndexModel(AppDb db) : PageModel
     [BindProperty] public string? Budget { get; set; }
     [BindProperty] public string? Note { get; set; }
 
-    public void OnGet()
-    {
-    }
+    public bool Deleted { get; private set; }
+
+    public void OnGet(bool deleted = false) => Deleted = deleted;
 
     public async Task<IActionResult> OnPostAsync()
     {
