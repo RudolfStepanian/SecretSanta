@@ -159,6 +159,10 @@ namespace SecretSanta.Data.Migrations
                     b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Login")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -187,11 +191,12 @@ namespace SecretSanta.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameId");
-
                     b.HasIndex("RecipientId");
 
                     b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("GameId", "Login")
                         .IsUnique();
 
                     b.ToTable("Participants");

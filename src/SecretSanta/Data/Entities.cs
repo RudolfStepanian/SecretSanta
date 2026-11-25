@@ -19,6 +19,7 @@ public class Participant
     public int GameId { get; set; }
     public Game Game { get; set; } = null!;
     public string Name { get; set; } = "";
+    public string? Login { get; set; }
     public string? Wishlist { get; set; }
     public string? NotWanted { get; set; }
     public string Token { get; set; } = "";

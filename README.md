@@ -1,13 +1,13 @@
 # Secret Santa
 
-A small Secret Santa site for a team. No e-mails: colleagues sign up inside a game with a name and a password, and the organizer manages the game through a secret link.
+A small Secret Santa site for a team. No e-mails: colleagues sign up inside a game with a login and a password, and the organizer manages the game through a secret link.
 
 ## How it works
 
 1. The organizer creates a game (optional budget and note) and gets two links:
    - **organizer panel** (`/admin/{token}`): participants, exclusions, the draw;
    - **invite link** (`/join/{token}`): sent to colleagues.
-2. Each colleague signs up through the invite link with a name, a password and a wishlist. Later they sign in there with the same name and password, from any device, and land on their own page (`/play/{invite}`).
+2. The invite link opens a sign-in page with a sign-up tab. Each colleague signs up with a login, a password, their name (what their Secret Santa sees) and a wishlist. Later they sign in there with the login and password, from any device, and land on their own page (`/play/{invite}`).
 3. The organizer runs the draw. Everyone opens their page and sees who they give to, along with that person's wishlist.
 
 Rules:
@@ -19,10 +19,11 @@ Rules:
 - Nobody, the organizer included, can see the full list of pairs. Cancelling the draw resets them and reopens joining.
 - After the draw, participants and exclusions are locked.
 - Wishlists stay editable; the giver always sees the latest version.
+- A login is 3 to 32 Latin letters, digits, dots, hyphens or underscores, unique within a game and case-insensitive. Participants who joined before logins existed sign in with their name until they choose a login on their page.
 - Passwords are stored as salted PBKDF2 hashes (ASP.NET Core `PasswordHasher`). Five wrong passwords in a row lock the participant for 15 minutes.
 - A device stays signed in to a game (one cookie per game) until the participant signs out at the bottom of their page.
 - A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password.
-- Personal links from before passwords (`/me/{token}`) still sign the device in; the page then asks for a password, and once it is set the link stops working.
+- Personal links from before passwords (`/me/{token}`) still sign the device in; the page then asks for a login and a password, and once they are set the link stops working.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 
 ## Stack

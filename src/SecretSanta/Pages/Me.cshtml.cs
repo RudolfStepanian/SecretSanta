@@ -19,10 +19,12 @@ public class MeModel(AppDb db) : PageModel
     public bool IsSaved { get; private set; }
     public bool PasswordSaved { get; private set; }
     public string? ErrorKey { get; private set; }
+    public string? LoginErrorKey { get; private set; }
     public string? PasswordErrorKey { get; private set; }
     [BindProperty] public string? Name { get; set; }
     [BindProperty] public string? Wishlist { get; set; }
     [BindProperty] public string? NotWanted { get; set; }
+    [BindProperty] public string? Login { get; set; }
     [BindProperty] public string? Password { get; set; }
     [BindProperty] public string? PasswordRepeat { get; set; }
 
@@ -60,22 +62,30 @@ public class MeModel(AppDb db) : PageModel
         return Redirect($"/play/{invite}?saved=true");
     }
 
-    // For someone who came in by an old personal link or a reset link: the new password replaces the token,
-    // so that link stops working and only the name and password (or this device) get them back in.
-    public async Task<IActionResult> OnPostPasswordAsync(string invite)
+    // Fills in whatever is missing for signing in: a login for those who joined before logins existed, a password
+    // after an old personal link or a reset link. A new password replaces the token, so that link stops working.
+    public async Task<IActionResult> OnPostCredentialsAsync(string invite)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-        if (Me.PasswordHash is not null) return Redirect($"/play/{invite}");
+        var needsLogin = Me.Login is null;
+        var needsPassword = Me.PasswordHash is null;
+        if (!needsLogin && !needsPassword) return Redirect($"/play/{invite}");
 
-        PasswordErrorKey = Passwords.Problem(Password, PasswordRepeat);
-        if (PasswordErrorKey is not null)
+        var login = needsLogin ? Logins.Normalize(Login) : Me.Login;
+        if (needsLogin) LoginErrorKey = login is null ? "LoginInvalid" : Me.Game.Participants.Any(p => p.Id != Me.Id && p.Login == login) ? "LoginTaken" : null;
+        if (needsPassword) PasswordErrorKey = Passwords.Problem(Password, PasswordRepeat);
+        if (LoginErrorKey is not null || PasswordErrorKey is not null)
         {
             FillForm();
             return Page();
         }
 
-        Passwords.Set(Me, Password!);
-        Me.Token = Tokens.New();
+        Me.Login = login;
+        if (needsPassword)
+        {
+            Passwords.Set(Me, Password!);
+            Me.Token = Tokens.New();
+        }
         await db.SaveChangesAsync();
         ParticipantCookie.Set(Response, Me.GameId, Me.Token);
         return Redirect($"/play/{invite}?password=true");

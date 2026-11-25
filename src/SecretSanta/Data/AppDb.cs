@@ -26,6 +26,8 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
         b.Entity<Participant>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(Limits.PersonName);
+            e.Property(x => x.Login).HasMaxLength(Limits.Login);
+            e.HasIndex(x => new { x.GameId, x.Login }).IsUnique();
             e.Property(x => x.Wishlist).HasMaxLength(Limits.Wishlist);
             e.Property(x => x.NotWanted).HasMaxLength(Limits.NotWanted);
             e.HasIndex(x => x.Token).IsUnique();
@@ -54,6 +56,8 @@ public static class Limits
     public const int Wishlist = 2000;
     public const int NotWanted = 1000;
     public const int Message = 1000;
+    public const int LoginMin = 3;
+    public const int Login = 32;
     public const int PasswordMin = 6;
     public const int Password = 100;
 

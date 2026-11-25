@@ -69,6 +69,7 @@
                     <div class="who">
                         <div class="name">@p.Name</div>
                         <div class="hint">
+                            @(p.Login is null ? T["NoLogin"] : T.F("LoginIs", p.Login)) ·
                             @(p.Wishlist is null ? T["WishlistEmpty"] : T["WishlistFilled"])
                             @if (p.PasswordHash is null)
                             {

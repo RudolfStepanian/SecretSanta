@@ -312,11 +312,30 @@ input:focus, textarea:focus, select:focus { outline: 3px solid rgba(230, 184, 74
 
 .waiting { text-align: center; }
 
-details.join > summary { list-style: none; cursor: pointer; }
-details.join > summary::-webkit-details-marker { display: none; }
-details.join > summary h2 { margin: 0; }
-details.join:not([open]) > summary h2 { font-size: 1rem; color: var(--muted); }
-details.join[open] > summary { margin-bottom: 6px; }
+/* Sign-in / sign-up switch on the invite page */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 4px;
+  background: var(--cream);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+}
+.tabs a {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+}
+.tabs a:hover { color: var(--text); }
+.tabs a.on { background: var(--green); color: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18); }
+
+/* Login and sign-out under the participant's own page */
+.signed-in { align-items: center; color: var(--cream); font-size: 0.9rem; }
 
 /* Face-down cards: one click flips the chosen card, the rest fade */
 .deck {
