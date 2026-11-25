@@ -1,2 +1,11 @@
 @page "/me/{token}"
 @model EnterModel
+@{
+    ViewData["Title"] = T["ResetUsedTitle"];
+}
+
+<section class="card waiting">
+    <h1>@T["ResetUsedTitle"]</h1>
+    <p class="muted">@T.F("ResetUsedText", Fmt.Local(Model.UsedAt!.Value))</p>
+    <a class="btn secondary" href="/">@T["BackHome"]</a>
+</section>

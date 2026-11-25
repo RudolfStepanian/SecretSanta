@@ -16,10 +16,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: santa
+          POSTGRES_PASSWORD: santa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U santa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
       TESTINGPLATFORM_TELEMETRY_OPTOUT: 1
+      # Tests that need PostgreSQL create a throwaway database on this server.
+      SECRETSANTA_TEST_DB: Host=localhost;Port=5432;Username=santa;Password=santa;Database=postgres
     steps:
       - uses: actions/checkout@v7
 

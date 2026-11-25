@@ -6,15 +6,32 @@ using SecretSanta.Services;
 
 namespace SecretSanta.Pages;
 
-// Personal links from before passwords and the one-time links from a password reset: they sign this device in
-// and lead to the participant's page. Setting a password changes the token, after which the link is dead.
+// /me/{token} is either the one-time link from a password reset or a personal link from before passwords.
+// A reset link signs one device in and is then used up: opened again, it says when it was opened, so a participant
+// whose link someone else (the organizer, say) opened first can tell. A personal link signs the device in until the
+// participant sets a password, which changes the token.
 public class EnterModel(AppDb db) : PageModel
 {
+    public DateTime? UsedAt { get; private set; }
+
     public async Task<IActionResult> OnGetAsync(string token)
     {
-        var person = await db.Participants.Include(p => p.Game).SingleOrDefaultAsync(p => p.Token == token);
-        if (person is null) return NotFound();
+        // Using up the link is one conditional update, so of two simultaneous opens only one signs in.
+        var now = DateTime.UtcNow;
+        var claimed = await db.Participants
+            .Where(p => p.ResetToken == token && p.ResetUsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.ResetUsedAt, now));
+        if (claimed == 1) return SignIn(await db.Participants.Include(p => p.Game).SingleAsync(p => p.ResetToken == token));
 
+        UsedAt = await db.Participants.Where(p => p.ResetToken == token).Select(p => p.ResetUsedAt).SingleOrDefaultAsync();
+        if (UsedAt is not null) return Page();
+
+        var person = await db.Participants.Include(p => p.Game).SingleOrDefaultAsync(p => p.Token == token);
+        return person is null ? NotFound() : SignIn(person);
+    }
+
+    private RedirectResult SignIn(Participant person)
+    {
         ParticipantCookie.Set(Response, person.GameId, person.Token);
         return Redirect($"/play/{person.Game.InviteToken}");
     }
