@@ -1,0 +1,39 @@
+@model MeModel
+@* The recipient's part of the participant's page. It is rendered only once the card is open: in the page itself,
+   or for the card animation by OnPostRevealAsync, so before that the page holds no name, wishlist or messages. *@
+@{
+    var recipient = Model.Me.Recipient!;
+}
+
+<div class="letter">
+    <p class="muted">@T["YouGiveTo"]</p>
+    <p class="recipient">@recipient.Name</p>
+
+    <h3>@T["TheirWishlist"]</h3>
+    @if (recipient.Wishlist is null)
+    {
+        <p class="muted">@T["EmptyWishlist"]</p>
+    }
+    else
+    {
+        <p class="text">@Fmt.Linkify(recipient.Wishlist)</p>
+    }
+
+    @if (recipient.NotWanted is not null)
+    {
+        <h3>@T["TheirNotWanted"]</h3>
+        <p class="text">@Fmt.Linkify(recipient.NotWanted)</p>
+    }
+
+    <p class="muted">@T.F("CardOpenedAt", Fmt.Local(Model.Me.RevealedAt!.Value))</p>
+</div>
+
+<section class="card" id="ask">
+    <h2>@T["AskTitle"]</h2>
+    <p class="hint">@T["AskHint"]</p>
+    <partial name="_Thread" model="new ThreadView(Model.AskThread, true, recipient.Name)" />
+    <form method="post" asp-page-handler="Ask" class="send">
+        <textarea name="Text" required maxlength="@Limits.Message" class="short" placeholder="@T["AskPlaceholder"]" aria-label="@T["AskTitle"]"></textarea>
+        <button type="submit" class="btn green">@T["Send"]</button>
+    </form>
+</section>

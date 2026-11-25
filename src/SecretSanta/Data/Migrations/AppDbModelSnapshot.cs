@@ -193,6 +193,12 @@ namespace SecretSanta.Data.Migrations
                     b.Property<int?>("RecipientId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("ResetAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ResetCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ResetToken")
                         .HasColumnType("text");
 

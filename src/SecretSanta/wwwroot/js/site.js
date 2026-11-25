@@ -44,9 +44,10 @@ function sparkle(card) {
   setTimeout(() => layer.remove(), 1600);
 }
 
-// Card pick: shake, flip with sparkles, record the reveal in the background, then show the wishlist.
-// Without JavaScript the card is a plain submit button and the server renders the revealed page.
-document.addEventListener('click', (e) => {
+// Card pick: shake, fetch the recipient's part of the page (it is not in the page before the card is opened), flip with
+// sparkles, then show it. If the request fails, the form is posted as usual; without JavaScript the card is a plain
+// submit button and the server renders the page with the card open.
+document.addEventListener('click', async (e) => {
   const card = e.target.closest('.playcard');
   if (!card) return;
   e.preventDefault();
@@ -55,14 +56,30 @@ document.addEventListener('click', (e) => {
   const body = new FormData(deck);
   deck.classList.add('done');
   deck.querySelectorAll('.playcard').forEach((b) => { b.disabled = true; });
-  fitName(card.querySelector('.face'), deck.dataset.name);
-  fetch(deck.action, { method: 'POST', body, credentials: 'same-origin' }).catch(() => {});
+  if (!calm) card.classList.add('opening');
+  const started = performance.now();
+
+  let html = null;
+  try {
+    const response = await fetch(deck.action, { method: 'POST', body, credentials: 'same-origin', headers: { 'X-Reveal': '1' } });
+    if (response.ok && response.headers.get('X-Reveal') === '1') html = await response.text();
+  } catch {
+    // Handled below by posting the form.
+  }
+  if (html === null) {
+    deck.submit();
+    return;
+  }
+
+  const result = document.getElementById('reveal-result');
+  result.innerHTML = html;
+  const name = result.querySelector('.recipient')?.textContent ?? '';
+  fitName(card.querySelector('.face'), name);
 
   // After the show the other cards go away, so the opened card and the wishlist under it fit on one screen.
-  const result = document.getElementById('reveal-result');
   const settle = () => {
     deck.classList.add('collapsed');
-    fitName(card.querySelector('.face'), deck.dataset.name, 22);
+    fitName(card.querySelector('.face'), name, 22);
     result.hidden = false;
     if (!calm) result.classList.add('appear');
     const top = card.getBoundingClientRect().top;
@@ -78,8 +95,7 @@ document.addEventListener('click', (e) => {
     setTimeout(settle, 1700);
   };
   if (calm) { flip(); return; }
-  card.classList.add('opening');
-  setTimeout(flip, 320);
+  setTimeout(flip, Math.max(0, 320 - (performance.now() - started)));
 });
 
 // Push notifications on the participant's page: this browser subscribes, asks for a test message or unsubscribes.

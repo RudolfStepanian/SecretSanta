@@ -80,6 +80,7 @@ public static class Limits
     public const int PasswordMin = 6;
     public const int Password = 100;
     public const int PushEndpoint = 2000;
+    public const int MaxParticipants = 200;
 
     public static string? Clean(string? value, int max)
     {

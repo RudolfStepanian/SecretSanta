@@ -151,6 +151,13 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid) : PageModel
             Me.RevealedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
         }
+        // The card animation asks for the recipient's part of the page only now (X-Reveal), so the page holds none of it
+        // before the card is opened. Without JavaScript the form post lands on the page with the card open.
+        if (Request.Headers["X-Reveal"] == "1" && Me.RevealedAt is not null && Me.Recipient is not null)
+        {
+            Response.Headers["X-Reveal"] = "1";
+            return Partial("_Reveal", this);
+        }
         return Redirect($"/play/{invite}");
     }
 

@@ -30,6 +30,25 @@
     <partial name="_Copy" model="@Request.Abs($"/join/{Model.Game.InviteToken}")" />
 </section>
 
+<form method="post" asp-page-handler="Info" class="card" id="info">
+    <h2>@T["GameInfoTitle"]</h2>
+    <p class="hint">@T["GameInfoHint"]</p>
+    @if (Model.InfoSaved)
+    {
+        <div class="alert ok">@T["Saved"]</div>
+    }
+
+    <label for="budget">@T["Budget"]</label>
+    <input id="budget" name="budget" type="text" maxlength="@Limits.Budget" value="@Model.Game.Budget" />
+
+    <label for="note">@T["Note"]</label>
+    <textarea id="note" name="note" maxlength="@Limits.Note" placeholder="@T["NotePlaceholder"]">@Model.Game.Note</textarea>
+
+    <div class="actions">
+        <button type="submit" class="btn green">@T["Save"]</button>
+    </div>
+</form>
+
 <section class="card">
     <h2>@T["Draw"]</h2>
     @if (drawn)

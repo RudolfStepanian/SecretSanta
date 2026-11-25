@@ -25,6 +25,11 @@ builder.Services.AddScoped<Notifier>();
 builder.Services.AddHostedService<PushDelivery>();
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();
+builder.Services.AddRateLimiter(o =>
+{
+    o.GlobalLimiter = RateLimits.Create();
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
@@ -64,16 +69,18 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
 app.UseForwardedHeaders();
 if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/error");
-app.UseStatusCodePagesWithReExecute("/not-found");
+app.UseStatusCodePagesWithReExecute("/not-found/{0}");
 app.Use(async (ctx, next) =>
 {
     ctx.Items[Languages.ItemKey] = Languages.Resolve(ctx);
     ctx.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
     ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
+    SecurityHeaders.Apply(ctx.Response);
     await next();
 });
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRateLimiter();
 
 // Liveness probe for Render and the keep-awake pinger: never touches the database and is never cached.
 app.MapMethods("/healthz", [HttpMethods.Get, HttpMethods.Head], (HttpResponse response) =>

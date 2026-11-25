@@ -24,7 +24,7 @@
         <nav class="langs" aria-label="Language">
             @foreach (var lang in Languages.Menu)
             {
-                <a href="?lang=@lang" class="@(lang == T.Lang ? "on" : null)" lang="@lang">@Languages.Label(lang)</a>
+                <a href="@Languages.Switch(Context.Request, lang)" class="@(lang == T.Lang ? "on" : null)" lang="@lang">@Languages.Label(lang)</a>
             }
         </nav>
     </header>
