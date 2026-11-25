@@ -31,6 +31,10 @@
     @if (Model.Registering)
     {
         <form method="post">
+            @if (Model.Full)
+            {
+                <div class="alert err">@T.F("GameFull", Limits.MaxParticipants)</div>
+            }
             <label for="login">@T["Login"]</label>
             <p class="hint">@T["LoginHint"]</p>
             <input id="login" name="Login" type="text" required minlength="@Limits.LoginMin" maxlength="@Limits.Login" value="@Model.Login" autocomplete="username" autocapitalize="none" spellcheck="false" />

@@ -12,6 +12,7 @@ public class JoinModel(AppDb db) : PageModel
     public Game Game { get; private set; } = null!;
     public Participant? Existing { get; private set; }
     public bool Registering { get; private set; }
+    public bool Full { get; private set; }
     public string? LoginErrorKey { get; private set; }
     public string? PasswordErrorKey { get; private set; }
     public string? NameErrorKey { get; private set; }
@@ -37,6 +38,11 @@ public class JoinModel(AppDb db) : PageModel
         if (!await LoadAsync(token)) return NotFound();
         if (Game.DrawnAt is not null) return Page();
         Registering = true;
+        if (Game.Participants.Count >= Limits.MaxParticipants)
+        {
+            Full = true;
+            return Page();
+        }
 
         var login = Logins.Normalize(Login);
         LoginErrorKey = login is null ? "LoginInvalid" : Game.Participants.Any(p => p.Login == login) ? "LoginTaken" : null;

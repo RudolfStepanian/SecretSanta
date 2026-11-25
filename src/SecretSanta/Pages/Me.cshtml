@@ -9,6 +9,10 @@
 
 <h1>@T.F("Hello", Model.Me.Name)</h1>
 <partial name="_GameInfo" model="game" />
+@if (Model.Me.ResetCount > 0 && Model.Me.ResetAt is { } resetAt)
+{
+    <p class="muted">@T.F("ResetHistory", Model.Me.ResetCount, Fmt.Local(resetAt))</p>
+}
 
 @if (Model.IsNew)
 {
@@ -82,7 +86,7 @@ else
         <section class="card">
             <h2>@T["PickTitle"]</h2>
             <p class="hint">@T["PickHint"]</p>
-            <form method="post" asp-page-handler="Reveal" class="deck" data-name="@recipient.Name">
+            <form method="post" asp-page-handler="Reveal" class="deck">
                 @for (var i = 1; i < game.Participants.Count; i++)
                 {
                     var design = i % 2 == 1 ? "cane" : "gingerbread";
@@ -95,39 +99,14 @@ else
                 }
             </form>
         </section>
+        <div class="result" id="reveal-result" hidden></div>
     }
-    <div class="result" id="reveal-result" hidden="@(!revealed)">
-        <div class="letter">
-            <p class="muted">@T["YouGiveTo"]</p>
-            <p class="recipient">@recipient.Name</p>
-
-            <h3>@T["TheirWishlist"]</h3>
-            @if (recipient.Wishlist is null)
-            {
-                <p class="muted">@T["EmptyWishlist"]</p>
-            }
-            else
-            {
-                <p class="text">@Fmt.Linkify(recipient.Wishlist)</p>
-            }
-
-            @if (recipient.NotWanted is not null)
-            {
-                <h3>@T["TheirNotWanted"]</h3>
-                <p class="text">@Fmt.Linkify(recipient.NotWanted)</p>
-            }
+    else
+    {
+        <div class="result" id="reveal-result">
+            <partial name="_Reveal" model="Model" />
         </div>
-
-        <section class="card" id="ask">
-            <h2>@T["AskTitle"]</h2>
-            <p class="hint">@T["AskHint"]</p>
-            <partial name="_Thread" model="new ThreadView(Model.AskThread, true, recipient.Name)" />
-            <form method="post" asp-page-handler="Ask" class="send">
-                <textarea name="Text" required maxlength="@Limits.Message" class="short" placeholder="@T["AskPlaceholder"]" aria-label="@T["AskTitle"]"></textarea>
-                <button type="submit" class="btn green">@T["Send"]</button>
-            </form>
-        </section>
-    </div>
+    }
 
     <section class="card" id="santa">
         <h2>@T["SantaTitle"]</h2>

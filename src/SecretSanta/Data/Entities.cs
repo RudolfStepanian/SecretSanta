@@ -29,6 +29,9 @@ public class Participant
     // The one-time link from a password reset, and when it was opened: opened again, the link shows that time.
     public string? ResetToken { get; set; }
     public DateTime? ResetUsedAt { get; set; }
+    // How many times the organizer reset the password, and when last: shown on the participant's page.
+    public int ResetCount { get; set; }
+    public DateTime? ResetAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }

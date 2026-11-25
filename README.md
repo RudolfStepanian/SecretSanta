@@ -24,6 +24,10 @@ Rules:
 - A device stays signed in to a game (one cookie per game) until the participant signs out at the bottom of their page.
 - A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password. The link signs in only once; opened again, it says when it was opened, so a participant can tell that someone else used it first.
 - Personal links from before passwords (`/me/{token}`) still sign the device in; the page then asks for a login and a password, and once they are set the link stops working.
+- A password reset also closes the participant's card again and is counted. The participant's page shows how many resets there were, when the last one was and when the card was opened, so a sign-in by someone else is noticeable.
+- Until a participant opens their card, their page holds neither the recipient's name nor the wishlist nor the messages: the card animation fetches that part when the card is opened (without JavaScript the form post opens the card).
+- The organizer can change the budget and the note at any time, also after the draw.
+- Form posts are rate-limited per IP and kind of action (`Services/RateLimits.cs`), generously enough for a whole office behind one IP; a game takes at most 200 participants. Pages send a Content-Security-Policy that allows only this site (plus `data:` images) and `X-Content-Type-Options: nosniff`.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 
 ## Notifications
@@ -104,6 +108,8 @@ dotnet test
 ```
 
 Tests use xUnit v3 on Microsoft Testing Platform (selected in `global.json`).
+
+Tests that need PostgreSQL (the pages through the whole app, with `WebApplicationFactory`) create a throwaway database on the server given in `SECRETSANTA_TEST_DB`, an Npgsql connection string, and are skipped without it. CI starts a PostgreSQL service for them.
 
 To check that the EF model and the migrations agree:
 

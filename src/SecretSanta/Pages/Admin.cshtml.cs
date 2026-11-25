@@ -16,12 +16,25 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
     [TempData] public string? ErrorKey { get; set; }
     [TempData] public string? ResetName { get; set; }
     [TempData] public string? ResetUrl { get; set; }
+    [TempData] public bool InfoSaved { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string token, bool created = false)
     {
         if (!await LoadAsync(token)) return NotFound();
         Created = created;
         return Page();
+    }
+
+    // Budget and note can change at any time, also after the draw; participants see the new text right away.
+    public async Task<IActionResult> OnPostInfoAsync(string token, string? budget, string? note)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+
+        Game.Budget = Limits.Clean(budget, Limits.Budget);
+        Game.Note = Limits.Clean(note, Limits.Note);
+        await db.SaveChangesAsync();
+        InfoSaved = true;
+        return Redirect($"/admin/{token}#info");
     }
 
     public async Task<IActionResult> OnPostRemoveAsync(string token, int id)
@@ -122,6 +135,10 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
             person.Token = Tokens.New(); // signs the participant out on every device
             person.ResetToken = Tokens.New();
             person.ResetUsedAt = null;
+            // The card closes again and the reset is counted, so whoever signs in next leaves a trace the participant sees.
+            person.RevealedAt = null;
+            person.ResetCount++;
+            person.ResetAt = DateTime.UtcNow;
             person.PasswordHash = null;
             person.FailedLogins = 0;
             person.LockedUntil = null;
