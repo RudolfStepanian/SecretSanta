@@ -27,6 +27,7 @@ Rules:
 - A password reset also closes the participant's card again and is counted. The participant's page shows how many resets there were, when the last one was and when the card was opened, so a sign-in by someone else is noticeable.
 - Until a participant opens their card, their page holds neither the recipient's name nor the wishlist nor the messages: the card animation fetches that part when the card is opened (without JavaScript the form post opens the card).
 - The organizer can change the budget and the note at any time, also after the draw.
+- Once their card is open, a Santa can mark the gift as ready and take the mark back. The organizer panel shows how many gifts are ready and a mark next to each participant, never who the gift is for. Cancelling the draw clears the marks.
 - Form posts are rate-limited per IP and kind of action (`Services/RateLimits.cs`), generously enough for a whole office behind one IP; a game takes at most 200 participants. Pages send a Content-Security-Policy that allows only this site (plus `data:` images) and `X-Content-Type-Options: nosniff`.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 

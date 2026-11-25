@@ -28,6 +28,26 @@
     <p class="muted">@T.F("CardOpenedAt", Fmt.Local(Model.Me.RevealedAt!.Value))</p>
 </div>
 
+<section class="card" id="gift">
+    <h2>@T["GiftTitle"]</h2>
+    @if (Model.Me.GiftReadyAt is { } giftReady)
+    {
+        <p>@T.F("GiftReadySince", Fmt.Local(giftReady))</p>
+        <form method="post" asp-page-handler="Gift" class="actions">
+            <input type="hidden" name="ready" value="false" />
+            <button type="submit" class="btn small secondary">@T["GiftUndo"]</button>
+        </form>
+    }
+    else
+    {
+        <p class="hint">@T["GiftHint"]</p>
+        <form method="post" asp-page-handler="Gift" class="actions">
+            <input type="hidden" name="ready" value="true" />
+            <button type="submit" class="btn green">@T["GiftReady"]</button>
+        </form>
+    }
+</section>
+
 <section class="card" id="ask">
     <h2>@T["AskTitle"]</h2>
     <p class="hint">@T["AskHint"]</p>

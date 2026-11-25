@@ -80,6 +80,36 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
     }
 
     [Fact]
+    public async Task Santa_marks_the_gift_ready_once_the_card_is_open()
+    {
+        SantaApp.SkipWithoutDatabase();
+        var game = await Games.NewAsync(app, ["Ruben", "Seda", "Tatev"], draw: true);
+        var play = $"/play/{game.Invite}";
+        var ruben = game.People["Ruben"];
+        async Task<string> PanelAsync() => await game.Organizer.PageAsync(game.Admin);
+
+        await ruben.PostAsync(play, play + "?handler=Gift", new() { ["ready"] = "true" });
+        Assert.Contains("Gifts ready: 0 of 3", await PanelAsync());
+
+        await ruben.PostAsync(play, play + "?handler=Reveal", []);
+        var marked = await ruben.PostAsync(play, play + "?handler=Gift", new() { ["ready"] = "true" });
+        Assert.Equal(HttpStatusCode.Redirect, marked.StatusCode);
+        Assert.Contains("Gift ready: you marked it on", await ruben.PageAsync(play));
+        var panel = await PanelAsync();
+        Assert.Contains("Gifts ready: 1 of 3", panel);
+        Assert.Single(Regex.Matches(panel, "· gift ready"));
+        Assert.Equal(2, Regex.Matches(panel, "· gift not ready yet").Count);
+
+        await ruben.PostAsync(play, play + "?handler=Gift", new() { ["ready"] = "false" });
+        Assert.Contains("Gifts ready: 0 of 3", await PanelAsync());
+
+        await ruben.PostAsync(play, play + "?handler=Gift", new() { ["ready"] = "true" });
+        await game.Organizer.PostAsync(game.Admin, game.Admin + "?handler=Undraw", []);
+        await game.Organizer.PostAsync(game.Admin, game.Admin + "?handler=Draw", []);
+        Assert.Contains("Gifts ready: 0 of 3", await PanelAsync());
+    }
+
+    [Fact]
     public async Task The_organizer_changes_budget_and_note_after_the_draw()
     {
         SantaApp.SkipWithoutDatabase();

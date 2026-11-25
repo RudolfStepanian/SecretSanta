@@ -119,6 +119,7 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         {
             p.RecipientId = null;
             p.RevealedAt = null;
+            p.GiftReadyAt = null;
         }
         Game.DrawnAt = null;
         await db.SaveChangesAsync();

@@ -171,6 +171,9 @@ namespace SecretSanta.Data.Migrations
                     b.Property<int>("GameId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("GiftReadyAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("timestamp with time zone");
 
