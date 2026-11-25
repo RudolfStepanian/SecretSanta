@@ -50,3 +50,24 @@ public class Exclusion
     public int FirstId { get; set; }
     public int SecondId { get; set; }
 }
+
+// One browser that asked for push notifications for a participant; a participant can have several devices.
+// Lang is the page language at the moment of subscribing, so notifications come in that language.
+public class PushSubscription
+{
+    public int Id { get; set; }
+    public int ParticipantId { get; set; }
+    public Participant Participant { get; set; } = null!;
+    public string Endpoint { get; set; } = "";
+    public string P256dh { get; set; } = "";
+    public string Auth { get; set; } = "";
+    public string Lang { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+}
+
+// Values the app creates for itself, such as the VAPID key pair for push notifications.
+public class AppSetting
+{
+    public string Key { get; set; } = "";
+    public string Value { get; set; } = "";
+}

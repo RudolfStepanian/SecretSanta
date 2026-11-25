@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using SecretSanta.Data;
+using SecretSanta.Localization;
 using SecretSanta.Services;
 
 namespace SecretSanta.Pages;
@@ -10,8 +11,9 @@ public record ThreadView(List<Message> Messages, bool ViewerIsSanta, string Othe
 
 // The participant's own page in a game. It shows whoever is signed in to that game on this device;
 // anyone else is sent to the sign-in form on the invite page.
-public class MeModel(AppDb db) : PageModel
+public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid) : PageModel
 {
+    public string VapidPublicKey => vapid.PublicKey;
     public Participant Me { get; private set; } = null!;
     public List<Message> SantaThread { get; private set; } = [];
     public List<Message> AskThread { get; private set; } = [];
@@ -91,12 +93,53 @@ public class MeModel(AppDb db) : PageModel
         return Redirect($"/play/{invite}?password=true");
     }
 
-    public async Task<IActionResult> OnPostLogoutAsync(string invite)
+    // The page script sends this device's push endpoint along, so a signed-out device stops getting notifications.
+    public async Task<IActionResult> OnPostLogoutAsync(string invite, string? endpoint)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
 
+        if (endpoint is not null) await db.PushSubscriptions.Where(s => s.ParticipantId == Me.Id && s.Endpoint == endpoint).ExecuteDeleteAsync();
         ParticipantCookie.Clear(Response, Me.GameId);
         return Redirect($"/join/{invite}");
+    }
+
+    // The browser on this device asks for notifications. The same browser subscribing again (or after someone else
+    // signed in on it) replaces its old entry.
+    public async Task<IActionResult> OnPostSubscribeAsync(string invite, string? endpoint, string? p256dh, string? auth)
+    {
+        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
+        if (!WebPush.IsPushEndpoint(endpoint) || WebPush.ReadKeys(p256dh, auth) is null) return BadRequest();
+
+        var subscription = await db.PushSubscriptions.SingleOrDefaultAsync(s => s.Endpoint == endpoint);
+        if (subscription is null)
+        {
+            subscription = new PushSubscription { Endpoint = endpoint!, CreatedAt = DateTime.UtcNow };
+            db.PushSubscriptions.Add(subscription);
+        }
+        subscription.ParticipantId = Me.Id;
+        subscription.P256dh = p256dh!;
+        subscription.Auth = auth!;
+        subscription.Lang = HttpContext.Items[Languages.ItemKey] as string ?? Languages.Default;
+        await db.SaveChangesAsync();
+        return new NoContentResult();
+    }
+
+    public async Task<IActionResult> OnPostUnsubscribeAsync(string invite, string? endpoint)
+    {
+        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
+
+        await db.PushSubscriptions.Where(s => s.ParticipantId == Me.Id && s.Endpoint == endpoint).ExecuteDeleteAsync();
+        return new NoContentResult();
+    }
+
+    public async Task<IActionResult> OnPostTestPushAsync(string invite, string? endpoint)
+    {
+        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
+
+        var subscription = await db.PushSubscriptions.SingleOrDefaultAsync(s => s.ParticipantId == Me.Id && s.Endpoint == endpoint);
+        if (subscription is null) return NotFound();
+        notifier.Enqueue(subscription, "PushTest", Request, $"/play/{invite}");
+        return new NoContentResult();
     }
 
     public async Task<IActionResult> OnPostRevealAsync(string invite)
@@ -122,6 +165,7 @@ public class MeModel(AppDb db) : PageModel
             db.Messages.Add(new Message { ParticipantId = recipientId, FromSanta = true, Text = clean, CreatedAt = DateTime.UtcNow });
             Me.RevealedAt ??= DateTime.UtcNow;
             await db.SaveChangesAsync();
+            await notifier.NotifyAsync([recipientId], "SantaWrote", Request, $"/play/{invite}#santa");
         }
         return Redirect($"/play/{invite}#ask");
     }
@@ -136,6 +180,8 @@ public class MeModel(AppDb db) : PageModel
         {
             db.Messages.Add(new Message { ParticipantId = Me.Id, FromSanta = false, Text = clean, CreatedAt = DateTime.UtcNow });
             await db.SaveChangesAsync();
+            var santa = Me.Game.Participants.Where(p => p.RecipientId == Me.Id).Select(p => p.Id).ToList();
+            await notifier.NotifyAsync(santa, "RecipientReplied", Request, $"/play/{invite}#ask");
         }
         return Redirect($"/play/{invite}#santa");
     }

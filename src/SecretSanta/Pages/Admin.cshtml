@@ -75,6 +75,10 @@
                             {
                                 <text> · @T["NoPassword"]</text>
                             }
+                            @if (Model.Notified.Contains(p.Id))
+                            {
+                                <text> · @T["NotifyMark"]</text>
+                            }
                             @if (drawn)
                             {
                                 <text> · @(p.RevealedAt is null ? T["CardNotOpened"] : T["CardOpened"])</text>

@@ -26,6 +26,15 @@ Rules:
 - Personal links from before passwords (`/me/{token}`) still sign the device in; the page then asks for a login and a password, and once they are set the link stops working.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 
+## Notifications
+
+Participants can turn on browser push notifications on their own page. A notification arrives when the organizer runs the draw, when a participant's Secret Santa asks them something, and when their recipient replies. The texts name nobody, and the organizer panel shows who has notifications on.
+
+- Web Push is implemented with the platform's own crypto (`Services/WebPush.cs`: RFC 8291 encryption, RFC 8292 VAPID); the tests check the encryption against the RFC 8291 example. The VAPID key pair is created on the first start and kept in the database (`Settings`), so subscriptions survive restarts and deploys.
+- Messages are sent in the background (`PushQueue`, `PushDelivery`); a subscription the push service reports as gone is deleted. Only the browsers' push services (Google, Mozilla, Microsoft, Apple) are accepted as endpoints.
+- On an iPhone, web push works only for a site added to the Home Screen (iOS 16.4 or later); the page explains this, and the site ships a web app manifest and icons for it.
+- Signing out on a device turns its notifications off.
+
 ## Stack
 
 ASP.NET Core 10 (LTS) Razor Pages, EF Core with PostgreSQL, no JavaScript framework.

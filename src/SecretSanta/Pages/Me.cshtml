@@ -140,6 +140,25 @@ else
     </section>
 }
 
+<section class="card" id="notify" hidden
+         data-key="@Model.VapidPublicKey"
+         data-text-unsupported="@T["NotifyUnsupported"]"
+         data-text-ios="@T["NotifyIos"]"
+         data-text-denied="@T["NotifyDenied"]"
+         data-text-on="@T["NotifyOn"]"
+         data-text-sent="@T["NotifySent"]"
+         data-text-failed="@T["NotifyFailed"]">
+    <h2>@T["NotifyTitle"]</h2>
+    <p class="hint">@T["NotifyHint"]</p>
+    <p class="notify-status" role="status" hidden></p>
+    <div class="actions">
+        <button type="button" class="btn green" data-push="on" hidden>@T["NotifyEnable"]</button>
+        <button type="button" class="btn small secondary" data-push="test" hidden>@T["NotifyTest"]</button>
+        <button type="button" class="btn small secondary" data-push="off" hidden>@T["NotifyDisable"]</button>
+    </div>
+    <form method="post" asp-page-handler="Subscribe" hidden></form>
+</section>
+
 <form method="post" class="card">
     <h2>@T["MyWishlist"]</h2>
     <p class="hint">@T["MyWishlistHint"]</p>
@@ -168,7 +187,8 @@ else
     </div>
 </form>
 
-<form method="post" asp-page-handler="Logout" class="actions signed-in">
+<form method="post" asp-page-handler="Logout" class="actions signed-in" data-logout>
+    <input type="hidden" name="endpoint" />
     @if (Model.Me.Login is not null)
     {
         <span>@T.F("YourLogin", Model.Me.Login)</span>

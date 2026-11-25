@@ -82,6 +82,99 @@ document.addEventListener('click', (e) => {
   setTimeout(flip, 320);
 });
 
+// Push notifications on the participant's page: this browser subscribes, asks for a test message or unsubscribes.
+// Without service workers or the Push API (an iPhone outside the Home Screen app, old browsers) the card explains why.
+const notifyCard = document.getElementById('notify');
+if (notifyCard) setUpNotifications(notifyCard).catch(() => {});
+
+async function setUpNotifications(card) {
+  const status = card.querySelector('.notify-status');
+  const show = (state, note) => {
+    card.hidden = false;
+    const visible = state === 'off' ? ['on'] : state === 'on' ? ['test', 'off'] : [];
+    card.querySelectorAll('[data-push]').forEach((b) => { b.hidden = !visible.includes(b.dataset.push); });
+    const key = note || (state === 'off' ? '' : state);
+    status.textContent = key ? card.dataset[`text${key[0].toUpperCase()}${key.slice(1)}`] : '';
+    status.hidden = !key;
+  };
+
+  const ua = navigator.userAgent;
+  const apple = /iPhone|iPad|iPod/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    show(apple ? 'ios' : 'unsupported');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    show('denied');
+    return;
+  }
+
+  const token = card.querySelector('[name=__RequestVerificationToken]').value;
+  const post = async (handler, fields) => {
+    const body = new FormData();
+    body.append('__RequestVerificationToken', token);
+    Object.entries(fields).forEach(([name, value]) => body.append(name, value));
+    const response = await fetch(`${location.pathname}?handler=${handler}`, { method: 'POST', body, credentials: 'same-origin' });
+    if (!response.ok) throw new Error(`${handler}: ${response.status}`);
+  };
+  const fields = (s) => {
+    const json = s.toJSON();
+    return { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth };
+  };
+
+  const registration = await navigator.serviceWorker.register('/sw.js');
+  let subscription = await registration.pushManager.getSubscription();
+  // Tells the server again which participant this browser belongs to: someone else may have signed in on it.
+  if (subscription) await post('Subscribe', fields(subscription));
+  show(subscription ? 'on' : 'off');
+
+  card.addEventListener('click', async (e) => {
+    const action = e.target.closest('[data-push]')?.dataset.push;
+    if (!action) return;
+    try {
+      if (action === 'on') {
+        if (await Notification.requestPermission() !== 'granted') {
+          show(Notification.permission === 'denied' ? 'denied' : 'off');
+          return;
+        }
+        const key = Uint8Array.from(atob(card.dataset.key.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+        subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+        await post('Subscribe', fields(subscription));
+        show('on');
+      } else if (action === 'test') {
+        await post('TestPush', { endpoint: subscription.endpoint });
+        show('on', 'sent');
+      } else {
+        await post('Unsubscribe', { endpoint: subscription.endpoint });
+        await subscription.unsubscribe();
+        subscription = null;
+        show('off');
+      }
+    } catch {
+      show(subscription ? 'on' : 'off', 'failed');
+    }
+  });
+}
+
+// Signing out also turns notifications off on this device.
+document.addEventListener('submit', async (e) => {
+  const form = e.target;
+  if (!form.matches('[data-logout]') || form.dataset.sent) return;
+  e.preventDefault();
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration();
+    const subscription = await registration?.pushManager.getSubscription();
+    if (subscription) {
+      form.elements.endpoint.value = subscription.endpoint;
+      await subscription.unsubscribe();
+    }
+  } catch {
+    // Sign out anyway.
+  }
+  form.dataset.sent = 'true';
+  form.submit();
+});
+
 document.addEventListener('click', async (e) => {
   const button = e.target.closest('[data-copy]');
   if (!button) return;

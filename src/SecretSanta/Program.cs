@@ -15,6 +15,14 @@ builder.Services.AddDataProtection()
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<KeepAwake>();
+builder.Services.AddSingleton(services =>
+{
+    using var scope = services.CreateScope();
+    return VapidKeys.LoadOrCreate(scope.ServiceProvider.GetRequiredService<AppDb>());
+});
+builder.Services.AddSingleton<PushQueue>();
+builder.Services.AddScoped<Notifier>();
+builder.Services.AddHostedService<PushDelivery>();
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();
 builder.Services.Configure<ForwardedHeadersOptions>(o =>

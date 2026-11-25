@@ -9,6 +9,8 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Exclusion> Exclusions => Set<Exclusion>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+    public DbSet<AppSetting> Settings => Set<AppSetting>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -45,6 +47,22 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
             e.HasOne<Participant>().WithMany().HasForeignKey(x => x.FirstId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Participant>().WithMany().HasForeignKey(x => x.SecondId).OnDelete(DeleteBehavior.Cascade);
         });
+
+        b.Entity<PushSubscription>(e =>
+        {
+            e.Property(x => x.Endpoint).HasMaxLength(Limits.PushEndpoint);
+            e.Property(x => x.P256dh).HasMaxLength(100);
+            e.Property(x => x.Auth).HasMaxLength(50);
+            e.Property(x => x.Lang).HasMaxLength(5);
+            e.HasIndex(x => x.Endpoint).IsUnique();
+            e.HasOne(x => x.Participant).WithMany().HasForeignKey(x => x.ParticipantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AppSetting>(e =>
+        {
+            e.HasKey(x => x.Key);
+            e.Property(x => x.Key).HasMaxLength(100);
+        });
     }
 }
 
@@ -60,6 +78,7 @@ public static class Limits
     public const int Login = 32;
     public const int PasswordMin = 6;
     public const int Password = 100;
+    public const int PushEndpoint = 2000;
 
     public static string? Clean(string? value, int max)
     {
