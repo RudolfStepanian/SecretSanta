@@ -162,6 +162,19 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid) : PageModel
     }
 
     // Santa writes to the recipient drawn for them; asking also counts as having opened the card.
+    // Santa marks the gift for their recipient as ready or takes the mark back; only once the card is open.
+    public async Task<IActionResult> OnPostGiftAsync(string invite, bool ready)
+    {
+        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
+
+        if (Me.Game.DrawnAt is not null && Me.RevealedAt is not null)
+        {
+            Me.GiftReadyAt = ready ? Me.GiftReadyAt ?? DateTime.UtcNow : null;
+            await db.SaveChangesAsync();
+        }
+        return Redirect($"/play/{invite}#gift");
+    }
+
     public async Task<IActionResult> OnPostAskAsync(string invite, string? text)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;

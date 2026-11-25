@@ -55,6 +55,7 @@
     {
         <p>@T.F("DrawDone", Fmt.Local(Model.Game.DrawnAt!.Value))</p>
         <p>@T.F("CardsOpened", Model.People.Count(p => p.RevealedAt is not null), Model.People.Count)</p>
+        <p>@T.F("GiftsReady", Model.People.Count(p => p.GiftReadyAt is not null), Model.People.Count)</p>
         <p class="muted">@T["OrganizerBlind"]</p>
         <form method="post" asp-page-handler="Undraw" data-confirm="@T["UndrawConfirm"]" class="actions">
             <button type="submit" class="btn secondary">@T["Undraw"]</button>
@@ -101,6 +102,7 @@
                             @if (drawn)
                             {
                                 <text> · @(p.RevealedAt is null ? T["CardNotOpened"] : T["CardOpened"])</text>
+                                <text> · @(p.GiftReadyAt is null ? T["GiftNotReadyMark"] : T["GiftReadyMark"])</text>
                             }
                         </div>
                     </div>
@@ -170,4 +172,12 @@
             </form>
         }
     }
+</section>
+
+<section class="card" id="delete">
+    <h2>@T["DeleteTitle"]</h2>
+    <p class="hint">@T.F("AutoDeleteOn", Fmt.Local(GameCleanup.DeleteAt(Model.Game)), GameCleanup.DaysAfterDraw, GameCleanup.DaysWithoutDraw)</p>
+    <form method="post" asp-page-handler="Delete" data-confirm="@T["DeleteConfirm"]" class="actions">
+        <button type="submit" class="btn small secondary danger">@T["DeleteGame"]</button>
+    </form>
 </section>

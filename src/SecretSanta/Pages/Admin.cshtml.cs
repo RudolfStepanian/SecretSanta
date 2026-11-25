@@ -112,16 +112,28 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
     public async Task<IActionResult> OnPostUndrawAsync(string token)
     {
         if (!await LoadAsync(token)) return NotFound();
+        var wasDrawn = Game.DrawnAt is not null;
 
         await db.Messages.Where(m => m.Participant.GameId == Game.Id).ExecuteDeleteAsync();
         foreach (var p in Game.Participants)
         {
             p.RecipientId = null;
             p.RevealedAt = null;
+            p.GiftReadyAt = null;
         }
         Game.DrawnAt = null;
         await db.SaveChangesAsync();
+        if (wasDrawn) await notifier.NotifyAsync(Game.Participants.Select(p => p.Id).ToList(), "PushDrawCancelled", Request, $"/play/{Game.InviteToken}");
         return Back(token);
+    }
+
+    // Deletes the game with everything in it; the organizer lands on the home page.
+    public async Task<IActionResult> OnPostDeleteAsync(string token)
+    {
+        if (!await LoadAsync(token)) return NotFound();
+
+        await GameCleanup.DeleteAsync(db, Game.Id);
+        return Redirect("/?deleted=true");
     }
 
     // Signs the participant out everywhere and gives the organizer a one-time link for setting a new password.

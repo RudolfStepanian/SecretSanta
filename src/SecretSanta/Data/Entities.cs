@@ -36,6 +36,8 @@ public class Participant
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }
     public DateTime? RevealedAt { get; set; }
+    // Santa's own mark that the gift for their recipient is ready; the organizer sees the marks, not who they are for.
+    public DateTime? GiftReadyAt { get; set; }
 }
 
 // One thread per recipient: their Santa asks, they answer. The sender is stored only as a side, never as a person.
