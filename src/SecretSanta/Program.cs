@@ -73,7 +73,9 @@ if (!app.Environment.IsDevelopment()) app.UseExceptionHandler("/error");
 app.UseStatusCodePagesWithReExecute("/not-found/{0}");
 app.Use(async (ctx, next) =>
 {
-    ctx.Items[Languages.ItemKey] = Languages.Resolve(ctx);
+    // A status code page runs the pipeline again for the same request, without its query: it keeps the language the
+    // first run resolved, so the ?lang of the address that failed still counts.
+    if (!ctx.Items.ContainsKey(Languages.ItemKey)) ctx.Items[Languages.ItemKey] = Languages.Resolve(ctx);
     ctx.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
     ctx.Response.Headers["Referrer-Policy"] = "no-referrer";
     SecurityHeaders.Apply(ctx.Response);

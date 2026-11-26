@@ -22,18 +22,19 @@ public static class Languages
         _ => lang,
     };
 
-    // The language menu link: the current address with only lang changed, so banners such as ?new=true stay. On a status
-    // code page it is the address that failed. A handler parameter is dropped: it names a form post handler, not a page.
+    // The language menu link: the current query with only lang changed, so banners such as ?new=true stay. The link has
+    // no path, so the browser keeps the page it shows (on a status code page, the address that failed), and an address
+    // like //other.example can't turn it into a link to another site. A handler parameter is dropped: it names a form
+    // post handler, not a page.
     public static string Switch(HttpRequest request, string lang)
     {
         var failed = request.HttpContext.Features.Get<IStatusCodeReExecuteFeature>();
-        var path = failed is null ? request.PathBase.Add(request.Path) : new PathString(failed.OriginalPathBase).Add(new PathString(failed.OriginalPath));
         IEnumerable<KeyValuePair<string, StringValues>> query = failed is null ? request.Query : QueryHelpers.ParseQuery(failed.OriginalQueryString);
         var pairs = query
             .Where(q => !q.Key.Equals("lang", StringComparison.OrdinalIgnoreCase) && !q.Key.Equals("handler", StringComparison.OrdinalIgnoreCase))
             .SelectMany(q => q.Value.Select(v => KeyValuePair.Create(q.Key, v)))
             .Append(KeyValuePair.Create("lang", (string?)lang));
-        return path.Add(QueryString.Create(pairs));
+        return QueryString.Create(pairs).ToUriComponent();
     }
 
     // ?lang=xx wins and is remembered in a cookie; then the cookie; otherwise Armenian.

@@ -131,7 +131,35 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
 
         var page = await visitor.PageAsync("/?created=true");
 
-        Assert.Contains("href=\"/?created=true&amp;lang=ru\"", page);
+        Assert.Contains("href=\"?created=true&amp;lang=ru\"", page);
+    }
+
+    // //evil.example/x is a path on this site, but a link to that path would take the browser to evil.example.
+    [Fact]
+    public async Task The_language_menu_on_a_double_slash_address_stays_on_the_site()
+    {
+        SantaApp.SkipWithoutDatabase();
+        var visitor = await Browser.OpenAsync(app);
+
+        var response = await visitor.GetAsync("http://localhost//evil.example/x");
+        var page = await response.Content.ReadAsStringAsync(Ct);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("href=\"?lang=ru\"", page);
+        Assert.DoesNotContain("evil.example", page);
+    }
+
+    // The visitor's cookie says English; the language menu on the "not found" page asks for Russian.
+    [Fact]
+    public async Task A_status_page_comes_in_the_language_its_address_asks_for()
+    {
+        SantaApp.SkipWithoutDatabase();
+        var visitor = await Browser.OpenAsync(app);
+
+        var response = await visitor.GetAsync("/no-such-page?lang=ru");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("<html lang=\"ru\"", await response.Content.ReadAsStringAsync(Ct));
     }
 
     [Fact]

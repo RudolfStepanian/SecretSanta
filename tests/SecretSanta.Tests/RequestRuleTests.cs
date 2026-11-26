@@ -29,17 +29,17 @@ public class RequestRuleTests
     }
 
     [Fact]
-    public void Language_link_keeps_the_address_except_lang_and_handler()
+    public void Language_link_keeps_the_query_except_lang_and_handler()
     {
         var ctx = new DefaultHttpContext();
         ctx.Request.Path = "/play/abc";
         ctx.Request.QueryString = new QueryString("?new=true&lang=hy&handler=Credentials");
 
-        Assert.Equal("/play/abc?new=true&lang=ru", Languages.Switch(ctx.Request, "ru"));
+        Assert.Equal("?new=true&lang=ru", Languages.Switch(ctx.Request, "ru"));
     }
 
     [Fact]
-    public void Language_link_on_a_status_page_keeps_the_address_that_failed()
+    public void Language_link_on_a_status_page_keeps_the_query_that_failed()
     {
         var ctx = new DefaultHttpContext();
         ctx.Request.Path = "/not-found/404";
@@ -50,6 +50,27 @@ public class RequestRuleTests
             OriginalQueryString = "?mode=register",
         });
 
-        Assert.Equal("/join/old?mode=register&lang=en", Languages.Switch(ctx.Request, "en"));
+        Assert.Equal("?mode=register&lang=en", Languages.Switch(ctx.Request, "en"));
+    }
+
+    // A browser reads //host and /\host as another site; the link has no path, so the address can't lead there.
+    [Theory]
+    [InlineData("//evil.example/x")]
+    [InlineData("/\\evil.example")]
+    public void Language_link_never_leads_to_another_site(string path)
+    {
+        var page = new DefaultHttpContext();
+        page.Request.Path = path;
+        var statusPage = new DefaultHttpContext();
+        statusPage.Request.Path = "/not-found/404";
+        statusPage.Features.Set<IStatusCodeReExecuteFeature>(new StatusCodeReExecuteFeature
+        {
+            OriginalPathBase = "",
+            OriginalPath = path,
+            OriginalQueryString = "",
+        });
+
+        Assert.Equal("?lang=ru", Languages.Switch(page.Request, "ru"));
+        Assert.Equal("?lang=ru", Languages.Switch(statusPage.Request, "ru"));
     }
 }

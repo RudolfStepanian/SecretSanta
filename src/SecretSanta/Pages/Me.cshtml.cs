@@ -161,7 +161,6 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid) : PageModel
         return Redirect($"/play/{invite}");
     }
 
-    // Santa writes to the recipient drawn for them; asking also counts as having opened the card.
     // Santa marks the gift for their recipient as ready or takes the mark back; only once the card is open.
     public async Task<IActionResult> OnPostGiftAsync(string invite, bool ready)
     {
@@ -175,6 +174,7 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid) : PageModel
         return Redirect($"/play/{invite}#gift");
     }
 
+    // Santa writes to the recipient drawn for them; asking also counts as having opened the card.
     public async Task<IActionResult> OnPostAskAsync(string invite, string? text)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
