@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SecretSanta.Data;
+using SecretSanta.Services;
 
 namespace SecretSanta.Tests;
 
@@ -28,7 +29,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.StartsWith("http://localhost/mail/", mail.Link);
         var link = app.Mailbox.LinkTo("arsen@example.com");
         Assert.StartsWith("/mail/", link);
-        Assert.Contains("A confirmation e-mail went to arsen@example.com", await arsen.PageAsync(play));
+        Assert.Contains("An e-mail went to arsen@example.com", await arsen.PageAsync(play));
         Assert.Null(await EmailAsync("arsen"));
 
         // Opening the link, as a mail scanner would, links nothing; the button does, on any device.
@@ -40,7 +41,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal("arsen@example.com", await EmailAsync("arsen"));
         var page = await arsen.PageAsync(play);
         Assert.Contains("Linked address: arsen@example.com", page);
-        Assert.DoesNotContain("A confirmation e-mail went to", page);
+        Assert.DoesNotContain("An e-mail went to", page);
         Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(link)).StatusCode);
         Assert.DoesNotContain("arsen@example.com", await game.Organizer.PageAsync(game.Admin));
     }
@@ -84,7 +85,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var late = await phone.PostAsync("/", link, []);
         Assert.Contains("This link has expired", await late.Content.ReadAsStringAsync(Ct));
         Assert.Null(await EmailAsync("hayk"));
-        Assert.DoesNotContain("A confirmation e-mail went to", await game.People["Hayk"].PageAsync(play));
+        Assert.DoesNotContain("An e-mail went to", await game.People["Hayk"].PageAsync(play));
     }
 
     [Fact]
@@ -149,7 +150,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         {
             app.Mailbox.Fail = false;
         }
-        Assert.DoesNotContain("A confirmation e-mail went to", await ovsanna.PageAsync(play));
+        Assert.DoesNotContain("An e-mail went to", await ovsanna.PageAsync(play));
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var petros = await scope.ServiceProvider.GetRequiredService<AppDb>().Participants.SingleAsync(p => p.Login == "petros", Ct);
@@ -185,26 +186,18 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal(HttpStatusCode.NotFound, (await (await Browser.OpenAsync(app)).GetAsync(link)).StatusCode);
     }
 
-    // The link in a Firebase e-mail: Firebase's action page on this site, with our link as continueUrl.
+    // The key behind the Firebase account passwords survives restarts, or the site couldn't sign in to the accounts again.
     [Fact]
-    public async Task The_link_in_a_Firebase_email_goes_on_to_our_page_and_nowhere_else()
+    public async Task The_Firebase_account_key_is_made_once_and_kept()
     {
         SantaApp.SkipWithoutDatabase();
-        var game = await Games.NewAsync(app, ["Zaven", "Shushan", "Tamar"], draw: false);
-        var play = $"/play/{game.Invite}";
-        await game.People["Zaven"].PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "zaven@example.com" });
-        var link = app.Mailbox.Sent.Last(m => m.To == "zaven@example.com").Link;
-        var phone = await Browser.OpenAsync(app);
-        string Action(string continueUrl) =>
-            $"/auth/action?mode=resetPassword&oobCode=firebase-code&apiKey=firebase-key&continueUrl={Uri.EscapeDataString(continueUrl)}&lang=en";
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
 
-        var opened = await phone.GetAsync(Action(link));
+        var first = FirebaseAccounts.LoadOrCreate(db).PasswordFor("ani@example.com");
 
-        Assert.Equal(HttpStatusCode.Redirect, opened.StatusCode);
-        Assert.Equal(new Uri(link).AbsolutePath, opened.Headers.Location!.OriginalString);
-        Assert.Contains("Link zaven@example.com to", await phone.PageAsync(opened.Headers.Location.OriginalString));
-        Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(Action("http://localhost" + game.Admin))).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync("/auth/action?mode=resetPassword&oobCode=firebase-code")).StatusCode);
+        Assert.Equal(first, FirebaseAccounts.LoadOrCreate(db).PasswordFor("ani@example.com"));
+        Assert.Equal(1, await db.Settings.CountAsync(s => s.Key == "FirebaseAccountKey", Ct));
     }
 
     private async Task<HttpResponseMessage> SignInAsync(string join, string login, string password)

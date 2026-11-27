@@ -30,6 +30,11 @@ builder.Services.Configure<FirebaseOptions>(firebase);
 string mailMode;
 if (firebase.Get<FirebaseOptions>() is { Configured: true })
 {
+    builder.Services.AddSingleton(services =>
+    {
+        using var scope = services.CreateScope();
+        return FirebaseAccounts.LoadOrCreate(scope.ServiceProvider.GetRequiredService<AppDb>());
+    });
     builder.Services.AddHttpClient<IMailSender, FirebaseMailSender>(c => c.Timeout = TimeSpan.FromSeconds(20));
     mailMode = "on, through Firebase";
 }
@@ -111,11 +116,6 @@ app.MapMethods("/healthz", [HttpMethods.Get, HttpMethods.Head], (HttpResponse re
     response.Headers.CacheControl = "no-store";
     return Results.Text("ok");
 }).ShortCircuit();
-
-// The link in a Firebase e-mail opens here (the action URL set in the Firebase console) and goes on to the page of ours
-// it carries as continueUrl.
-app.MapGet("/auth/action", (string? continueUrl) =>
-    MailLinks.PathOf(continueUrl) is { } path ? Results.Redirect(path) : Results.NotFound());
 
 app.MapRazorPages();
 

@@ -1,9 +1,11 @@
+using System.Buffers.Text;
 using System.Net.Mail;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using SecretSanta.Data;
+using SecretSanta.Localization;
 
 namespace SecretSanta.Services;
 
@@ -30,47 +32,61 @@ public sealed class FirebaseOptions
 
 // A link sent by e-mail works for a day, and a participant gets at most one e-mail of each kind per five minutes,
 // so nobody can spend the day's sending limit on one person.
-public static partial class MailLinks
+public static class MailLinks
 {
     public static readonly TimeSpan Life = TimeSpan.FromDays(1);
     public static readonly TimeSpan Pause = TimeSpan.FromMinutes(5);
-
-    // The path of a link this site mails (/mail/{token} or /me/{token}) inside Firebase's continueUrl, or null for
-    // anything else. Only the path is kept, so the link in an e-mail can't lead off this site.
-    public static string? PathOf(string? continueUrl) =>
-        Uri.TryCreate(continueUrl, UriKind.Absolute, out var url) && MailedPath().IsMatch(url.AbsolutePath) ? url.AbsolutePath : null;
-
-    [GeneratedRegex("^/(mail|me)/[A-Za-z0-9_-]+$")]
-    private static partial Regex MailedPath();
 }
 
-// Firebase Authentication sends the mail, free and without a mailbox of our own: its password reset e-mail, whose text
-// is set in the Firebase console (README, E-mail), carries our link as the continue URL. The link in the e-mail opens
-// /auth/action, which goes on to that page of ours; Firebase's own code in it is not used.
-// Firebase mails only addresses that have a Firebase account, so the address first gets one, with a random password
-// that nobody uses: signing in stays on this site.
-public sealed class FirebaseMailSender(HttpClient http, IOptions<FirebaseOptions> options, IHttpContextAccessor context, ILogger<FirebaseMailSender> logger) : IMailSender
+// Turns an address into the password of its Firebase account, so the site can sign in to that account again whenever
+// Firebase is to mail it. The key is created on the first use and kept in the database, like the VAPID keys.
+public sealed class FirebaseAccounts(byte[] key)
+{
+    private const string Name = "FirebaseAccountKey";
+
+    public static FirebaseAccounts LoadOrCreate(AppDb db)
+    {
+        var saved = db.Settings.SingleOrDefault(s => s.Key == Name);
+        if (saved is not null) return new FirebaseAccounts(Base64Url.DecodeFromChars(saved.Value));
+
+        var key = RandomNumberGenerator.GetBytes(32);
+        db.Settings.Add(new AppSetting { Key = Name, Value = Base64Url.EncodeToString(key) });
+        db.SaveChanges();
+        return new FirebaseAccounts(key);
+    }
+
+    public string PasswordFor(string email) => Base64Url.EncodeToString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(email)));
+}
+
+// Firebase Authentication sends the mail, free and without a mailbox of our own. Its e-mail texts and the page its links
+// open can't be changed for this project, so every e-mail is Firebase's standard "verify your e-mail address" one: the
+// link opens Firebase's page, which confirms the address and offers Continue to our link (the continue URL). That
+// e-mail asks for no password, unlike Firebase's own password reset.
+// Firebase mails only addresses that have an account, and only when asked with that account's ID token, so the address
+// gets an account first, with a password made by FirebaseAccounts that nobody types: signing in stays on this site.
+public sealed class FirebaseMailSender(HttpClient http, IOptions<FirebaseOptions> options, FirebaseAccounts accounts, IHttpContextAccessor context, ILogger<FirebaseMailSender> logger) : IMailSender
 {
     private const string Accounts = "https://identitytoolkit.googleapis.com/v1/accounts";
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
     public bool Enabled => true;
 
     public async Task<bool> SendAsync(Mail mail, CancellationToken ct)
     {
         var key = Uri.EscapeDataString(options.Value.ApiKey!);
+        var account = new { email = mail.To, password = accounts.PasswordFor(mail.To), returnSecureToken = true };
         try
         {
-            var account = await PostAsync($"{Accounts}:signUp?key={key}", new { email = mail.To, password = Tokens.New() + Tokens.New() }, ct);
-            if (account is not (null or "EMAIL_EXISTS"))
+            var (idToken, error) = await PostAsync($"{Accounts}:signUp?key={key}", account, null, ct);
+            if (error == "EMAIL_EXISTS") (idToken, error) = await PostAsync($"{Accounts}:signInWithPassword?key={key}", account, null, ct);
+            if (idToken is null)
             {
-                logger.LogWarning("E-mail {Kind} not sent: Firebase refused the account, {Error}.", mail.Kind, account);
+                logger.LogWarning("E-mail {Kind} not sent: no Firebase account for the address, {Error}.", mail.Kind, error ?? "no ID token");
                 return false;
             }
 
-            // The participant's IP, so Firebase's abuse limits count people rather than this server.
-            var ip = context.HttpContext?.Connection.RemoteIpAddress?.ToString();
-            var sent = await PostAsync($"{Accounts}:sendOobCode?key={key}", new { requestType = "PASSWORD_RESET", email = mail.To, continueUrl = mail.Link, userIp = ip }, ct);
+            // Firebase's e-mail and its page in the language of the page the participant asked on.
+            var locale = context.HttpContext?.Items[Languages.ItemKey] as string;
+            var (_, sent) = await PostAsync($"{Accounts}:sendOobCode?key={key}", new { requestType = "VERIFY_EMAIL", idToken, continueUrl = mail.Link }, locale, ct);
             if (sent is null)
             {
                 logger.LogInformation("E-mail {Kind} sent through Firebase.", mail.Kind);
@@ -85,21 +101,24 @@ public sealed class FirebaseMailSender(HttpClient http, IOptions<FirebaseOptions
         return false;
     }
 
-    // Null when Firebase accepted the request; otherwise its error code, such as EMAIL_EXISTS.
-    private async Task<string?> PostAsync(string url, object body, CancellationToken ct)
+    // Firebase's answer: the ID token it returned, if any, or the code of its error, such as EMAIL_EXISTS.
+    private async Task<(string? IdToken, string? Error)> PostAsync(string url, object body, string? locale, CancellationToken ct)
     {
-        using var response = await http.PostAsJsonAsync(url, body, Json, ct);
-        if (response.IsSuccessStatusCode) return null;
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
+        if (locale is not null) request.Headers.Add("X-Firebase-Locale", locale);
+        using var response = await http.SendAsync(request, ct);
         var text = await response.Content.ReadAsStringAsync(ct);
         try
         {
             using var reply = JsonDocument.Parse(text);
+            if (response.IsSuccessStatusCode)
+                return (reply.RootElement.TryGetProperty("idToken", out var token) ? token.GetString() : null, null);
             var message = reply.RootElement.GetProperty("error").GetProperty("message").GetString() ?? "";
-            return message.Split(" : ")[0];
+            return (null, message.Split(" : ")[0]);
         }
         catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
         {
-            return $"HTTP {(int)response.StatusCode}";
+            return (null, response.IsSuccessStatusCode ? null : $"HTTP {(int)response.StatusCode}");
         }
     }
 }

@@ -48,29 +48,20 @@ A participant can link an e-mail address on their own page and reset a forgotten
 - Linking: the page mails a confirmation link (`/mail/{token}`); the address counts once the button behind that link is pressed. Until then an address linked before stays.
 - Forgot your password: the participant types their login and gets a one-time link (`/me/{token}`, the same kind the organizer hands out) at the linked address. Asking changes nothing else, so the old password works until the link is used. The answer is the same whether or not the login exists or has an address.
 - Links from e-mails work for a day, and a participant gets at most one e-mail of each kind per five minutes. A mailed reset is not counted as an organizer reset and doesn't close the card. Unlinking the address also stops a reset link already mailed to it.
-- Firebase Authentication sends the mail, on the free Spark plan: no card, no mailbox of our own, and no SMTP, which a free Render instance can't use. The site calls Firebase's REST API (`Services/Mail.cs`): the address first gets a Firebase account with a random password nobody uses, then Firebase sends its password reset e-mail with our link as the continue URL. Signing in stays on this site; Firebase only delivers the link.
-- The link in that e-mail opens `/auth/action` (the action URL set in the Firebase console), which goes on to our page from the continue URL. Only `/mail/{token}` and `/me/{token}` on this site are followed; Firebase's own code in the link is not used.
-- Every e-mail has the same text, set once in the Firebase console in three languages (below): a link to confirm the address or to set a new password.
-- The free plan sends at most 150 such e-mails a day, confirmations and resets together. Firebase sends them from its shared `noreply@<project>.firebaseapp.com` address, so they sometimes land in spam; the pages tell participants to look there.
-- Linked addresses stay as accounts in Firebase (Authentication → Users); delete them there if needed. The links in the e-mails carry the project's Web API key, which Firebase puts there: with it one can ask Firebase for such e-mails, but not sign in to this site.
+- Firebase Authentication sends the mail, on the free Spark plan: no card, no mailbox of our own, and no SMTP, which a free Render instance can't use. The site calls Firebase's REST API (`Services/Mail.cs`). Signing in stays on this site; Firebase only delivers the link.
+- Firebase doesn't let this project change its e-mail texts or the page its links open ("Email template updates are currently unavailable for this project"). So every e-mail, the forgotten password one too, is Firebase's standard "verify your e-mail" e-mail: its link opens Firebase's page, which confirms the address and offers Continue to our link (Firebase's continue URL). Firebase's own password reset e-mail is not used, because its page would ask for a Firebase password. The participant's page and the "Forgot your password?" answer tell participants what to expect.
+- Firebase mails only addresses that have an account there, and only when asked with that account's ID token. So the address first gets a Firebase account (`accounts:signUp`, or `accounts:signInWithPassword` when it has one already), with a password made from the address and a key kept in the database (`FirebaseAccounts`); nobody types it.
+- The e-mail and Firebase's page come in the language of the page the participant asked on (`X-Firebase-Locale`), where Firebase has that language.
+- The free plan sends a limited number of such e-mails a day. Firebase sends them from its shared `noreply@<project>.firebaseapp.com` address, so they sometimes land in spam; the pages tell participants to look there.
+- Linked addresses stay as accounts in Firebase (Authentication → Users); delete them there if needed.
 - Without Firebase the site offers no e-mail at all and works as before. In Development without it, e-mails are written to the log instead.
 
 Setting up Firebase:
 
 1. In the [Firebase console](https://console.firebase.google.com) create a project. The Spark plan needs no card; Google Analytics can stay off.
 2. **Authentication → Get started → Sign-in method**: enable **Email/Password**.
-3. **Authentication → Settings → Authorized domains**: add the site's domain (`secretsanta-b49y.onrender.com`).
-4. **Authentication → Templates → Password reset → edit**: sender name and subject `Secret Santa`, and the message below. Then **Customize action URL**: `https://secretsanta-b49y.onrender.com/auth/action` (it applies to all templates).
-5. **Project settings → General**: copy the **Web API key** and set it on Render as `Firebase__ApiKey`. After the restart the startup log says `E-mail is on, through Firebase.`
-
-The message of the password reset template:
-
-```html
-<p><a href="%LINK%">Բացել հղումը · Открыть ссылку · Open the link</a></p>
-<p>Գաղտնի Ձմեռ պապի կայքից՝ %EMAIL% հասցեն հաստատելու կամ նոր գաղտնաբառ սահմանելու համար։ Հղումը գործում է մեկ օր։ Եթե դուք ոչինչ չեք խնդրել, ջնջեք այս նամակը։</p>
-<p>С сайта «Тайного Санты»: подтвердить адрес %EMAIL% или задать новый пароль. Ссылка действует сутки. Если вы ничего не запрашивали, удалите это письмо.</p>
-<p>From the Secret Santa site: to confirm %EMAIL% or to set a new password. The link works for a day. If you didn't ask for it, delete this e-mail.</p>
-```
+3. **Authentication → Settings → Authorized domains**: add the site's domain (`secretsanta-b49y.onrender.com`), so Firebase accepts our links as continue URLs.
+4. **Project settings → General**: set the public-facing name to `Secret Santa` (the e-mails name the app by it), copy the **Web API key** and set it on Render as `Firebase__ApiKey`. After the restart the startup log says `E-mail is on, through Firebase.`
 
 ## Stack
 
