@@ -35,6 +35,8 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
     public async Task<IActionResult> OnGetAsync(string token, string? mode, bool forgot = false)
     {
         if (!await LoadAsync(token)) return NotFound();
+        // Whoever is signed in to this game on this device goes straight to their page.
+        if (Existing is not null) return Redirect($"/play/{Game.InviteToken}");
         Registering = mode == "register" && Game.DrawnAt is null;
         ForgotSent = forgot && !Registering;
         return Page();

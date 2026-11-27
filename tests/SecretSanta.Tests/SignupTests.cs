@@ -49,6 +49,9 @@ public sealed class SignupTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.NotNull(await Games.IdAsync(app, "gevorg"));
         Assert.DoesNotContain("Waiting for their e-mail confirmation", await game.Organizer.PageAsync(game.Admin));
         Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(link)).StatusCode);
+        // Signed in, the invite link goes straight to the participant's page.
+        Assert.Equal($"/play/{game.Invite}", (await phone.GetAsync(join)).Headers.Location!.OriginalString);
+        Assert.Equal($"/play/{game.Invite}", (await phone.GetAsync(register)).Headers.Location!.OriginalString);
 
         // From now on the address and the password sign in, and the address can't sign up again.
         Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "Gevorg@Example.com")).StatusCode);

@@ -11,14 +11,6 @@
 <partial name="_GameInfo" model="Model.Game" />
 <p class="muted">@T.F("JoinedCount", Model.Game.Participants.Count)</p>
 
-@if (Model.Existing is not null)
-{
-    <div class="alert ok">
-        <p>@T.F("AlreadyJoined", Model.Existing.Name)</p>
-        <a class="btn small green" href="/play/@Model.Game.InviteToken">@T["OpenMyPage"]</a>
-    </div>
-}
-
 <section class="card">
     @if (!drawn)
     {

@@ -81,8 +81,6 @@ public static class Strings
         ["JoinButton"] = ["Участвую!", "I'm in!", "Մասնակցում եմ"],
         ["JoinClosed"] = ["Жеребьёвка уже проведена, присоединиться нельзя. Напишите организатору.", "The draw has already taken place, so joining is closed. Contact the organizer.", "Վիճակահանությունն արդեն անցկացվել է, միանալ հնարավոր չէ։ Դիմեք կազմակերպչին։"],
         ["GameFull"] = ["В игре уже {0} участников — это максимум.", "The game already has {0} participants, which is the maximum.", "Խաղում արդեն {0} մասնակից կա, սա առավելագույնն է։"],
-        ["AlreadyJoined"] = ["Вы уже участвуете в этой игре как «{0}».", "You are already in this game as \"{0}\".", "Դուք արդեն մասնակցում եք այս խաղին որպես «{0}»։"],
-        ["OpenMyPage"] = ["Открыть мою страницу", "Open my page", "Բացել իմ էջը"],
         ["NameTaken"] = ["Такое имя уже есть. Добавьте фамилию или инициал.", "That name is already taken. Add a surname or an initial.", "Այս անունն արդեն կա։ Ավելացրեք ազգանունը կամ սկզբնատառը։"],
         ["JoinedCount"] = ["Уже участвуют: {0}", "Joined so far: {0}", "Արդեն մասնակցում են՝ {0}"],
         ["Password"] = ["Пароль", "Password", "Գաղտնաբառ"],

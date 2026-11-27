@@ -115,12 +115,11 @@ public sealed class MailOffTests(SantaAppWithoutMail app) : IClassFixture<SantaA
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Anahit", "Bagrat", "Gevorg"], draw: false);
         var join = $"/join/{game.Invite}";
-        var anahit = game.People["Anahit"];
-
-        Assert.DoesNotContain("Forgot your password?", await anahit.PageAsync(join));
-        Assert.Equal(HttpStatusCode.NotFound, (await anahit.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "anahit@example.com" })).StatusCode);
-        Assert.DoesNotContain("no e-mail", await game.Organizer.PageAsync(game.Admin));
         var device = await Browser.OpenAsync(app);
+
+        Assert.DoesNotContain("Forgot your password?", await device.PageAsync(join));
+        Assert.Equal(HttpStatusCode.NotFound, (await device.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "anahit@example.com" })).StatusCode);
+        Assert.DoesNotContain("no e-mail", await game.Organizer.PageAsync(game.Admin));
         var signedIn = await device.PostAsync(join, join + "?handler=SignIn", new() { ["SignInLogin"] = "anahit@example.com", ["SignInPassword"] = "secret-1" });
         Assert.Equal(HttpStatusCode.Redirect, signedIn.StatusCode);
 
