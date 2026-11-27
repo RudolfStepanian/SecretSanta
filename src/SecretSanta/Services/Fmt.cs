@@ -18,7 +18,8 @@ public static partial class Fmt
     public static string Local(DateTime utc) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), Zone).ToString("dd.MM.yyyy HH:mm");
 
-    // HTML-encodes free text and turns http(s) links into anchors that do not leak the page URL.
+    // HTML-encodes free text and turns http(s) links, and links pasted without a scheme from www., into anchors that
+    // open in a new tab and do not leak the page URL. Punctuation right after a link stays outside it.
     public static IHtmlContent Linkify(string? text)
     {
         if (string.IsNullOrEmpty(text)) return HtmlString.Empty;
@@ -28,7 +29,8 @@ public static partial class Fmt
         {
             sb.Append(HtmlEncoder.Default.Encode(text[pos..m.Index]));
             var url = HtmlEncoder.Default.Encode(m.Value);
-            sb.Append($"<a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{url}</a>");
+            var href = m.Value.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? "https://" + url : url;
+            sb.Append($"<a href=\"{href}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{url}</a>");
             pos = m.Index + m.Length;
         }
         sb.Append(HtmlEncoder.Default.Encode(text[pos..]));
@@ -44,6 +46,6 @@ public static partial class Fmt
         catch (TimeZoneNotFoundException) { return null; }
     }
 
-    [GeneratedRegex(@"https?://[^\s<>""]+[^\s<>"".,;:!?)\]]", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:https?://|\bwww\.)[^\s<>""]+[^\s<>"".,;:!?)\]]", RegexOptions.IgnoreCase)]
     private static partial Regex UrlRegex();
 }

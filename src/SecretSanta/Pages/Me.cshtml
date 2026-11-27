@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = Model.Me.Name;
     var game = Model.Me.Game;
+    ViewData["Home"] = $"/play/{game.InviteToken}";
     var recipient = game.DrawnAt is not null ? Model.Me.Recipient : null;
     var santaLabel = T["WhoSanta"];
 }

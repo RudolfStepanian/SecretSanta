@@ -17,15 +17,17 @@ public class EnterModel(AppDb db) : PageModel
 {
     public DateTime? UsedAt { get; private set; }
     public bool Expired { get; private set; }
+    public string Invite { get; private set; } = "";
 
     public async Task<IActionResult> OnGetAsync(string token)
     {
         var reset = await db.Participants
             .Where(p => p.ResetToken == token)
-            .Select(p => new { p.ResetUsedAt, p.ResetSentAt })
+            .Select(p => new { p.ResetUsedAt, p.ResetSentAt, p.Game.InviteToken })
             .SingleOrDefaultAsync();
         if (reset is not null)
         {
+            Invite = reset.InviteToken;
             UsedAt = reset.ResetUsedAt;
             Expired = UsedAt is null && reset.ResetSentAt <= DateTime.UtcNow - MailLinks.Life;
             return Page();

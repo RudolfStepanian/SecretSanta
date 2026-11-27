@@ -48,7 +48,7 @@ public static class Games
         ["Email"] = Address(name),
         ["Password"] = "secret-1",
         ["PasswordRepeat"] = "secret-1",
-        ["Wishlist"] = $"{name} wants a scarf",
+        ["Wishlist"] = $"{name} wants a scarf: https://shop.example/scarf?size=m&color=red",
         ["NotWanted"] = "",
     };
 

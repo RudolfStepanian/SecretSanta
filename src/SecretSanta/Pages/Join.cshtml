@@ -2,6 +2,7 @@
 @model JoinModel
 @{
     ViewData["Title"] = T["AuthTitle"];
+    ViewData["Home"] = $"/play/{Model.Game.InviteToken}";
     var drawn = Model.Game.DrawnAt is not null;
     var signInUrl = $"/join/{Model.Game.InviteToken}";
     var registerUrl = $"/join/{Model.Game.InviteToken}?mode=register";

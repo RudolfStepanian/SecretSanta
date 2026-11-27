@@ -46,6 +46,7 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
         var recipient = Regex.Match(part, "<p class=\"recipient\">([^<]+)</p>").Groups[1].Value;
         Assert.Contains(recipient, new[] { "Babken", "Chamich" });
         Assert.Contains($"{recipient} wants a scarf", part);
+        Assert.Contains("<a href=\"https://shop.example/scarf?size=m&amp;color=red\" target=\"_blank\"", part);
         Assert.Contains("Card opened on", part);
         var after = await arpi.PageAsync(play);
         Assert.Contains($"<p class=\"recipient\">{recipient}</p>", after);
@@ -122,6 +123,10 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
         var page = await game.People["Hayk"].PageAsync($"/play/{game.Invite}");
         Assert.Contains("20000 AMD", page);
         Assert.Contains("Moved to Friday", page);
+        // The logo leads back into the game, not to the page for a new one.
+        Assert.Contains($"class=\"logo\" href=\"/play/{game.Invite}\"", page);
+        Assert.Contains($"class=\"logo\" href=\"{game.Admin}\"", await game.Organizer.PageAsync(game.Admin));
+        Assert.Contains("class=\"logo\" href=\"/\"", await game.Organizer.PageAsync("/"));
     }
 
     [Fact]
