@@ -119,38 +119,6 @@ else
     </section>
 }
 
-@* Whoever signed up with their address has it linked already; the card is for those who sign in with a login. *@
-@if (Model.MailEnabled && !Model.SignsInWithEmail)
-{
-    <form method="post" asp-page-handler="Mail" class="card" id="mail">
-        <h2>@T["MailTitle"]</h2>
-        <p class="hint">@T["MailHint"]</p>
-        @if (Model.Me.Email is not null)
-        {
-            <p>@T.F("MailLinked", Model.Me.Email)</p>
-        }
-        @if (Model.MailPending)
-        {
-            <div class="alert ok">@T.F("MailPending", Model.Me.PendingEmail!)</div>
-        }
-
-        <label for="email">@T["MailAddress"]</label>
-        <input id="email" name="Email" type="email" required maxlength="@Limits.Email" value="@Model.Email" autocomplete="email" autocapitalize="none" spellcheck="false" />
-        @if (Model.MailErrorKey is not null)
-        {
-            <p class="field-error">@T[Model.MailErrorKey]</p>
-        }
-
-        <div class="actions">
-            <button type="submit" class="btn green">@T["MailSend"]</button>
-            @if (Model.Me.Email is not null)
-            {
-                <button type="submit" class="btn small secondary" asp-page-handler="MailRemove" formnovalidate>@T["MailRemove"]</button>
-            }
-        </div>
-    </form>
-}
-
 <form method="post" class="card">
     <h2>@T["MyWishlist"]</h2>
     <p class="hint">@T["MyWishlistHint"]</p>

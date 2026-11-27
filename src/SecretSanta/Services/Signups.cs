@@ -5,9 +5,8 @@ namespace SecretSanta.Services;
 // Signing up with an e-mail address: the person joins the game only through the link mailed to that address.
 public static class Signups
 {
-    // Whether someone in the game signs in with the address or has it linked: an address belongs to one participant.
-    public static bool Taken(Game game, string email, int? except = null) =>
-        game.Participants.Any(p => p.Id != except && (p.Login == email || p.Email == email));
+    // Whether someone in the game already signs in with the address: an address belongs to one participant.
+    public static bool Taken(Game game, string email) => game.Participants.Any(p => p.Login == email);
 
     // Null when the sign-up can still join, otherwise the key of the reason: since the e-mail went out, the draw may
     // have happened, the game may have filled up, or someone else may have taken the address or the name.

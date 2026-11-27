@@ -34,8 +34,6 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
             e.HasIndex(x => x.Token).IsUnique();
             e.HasIndex(x => x.ResetToken).IsUnique();
             e.Property(x => x.Email).HasMaxLength(Limits.Email);
-            e.Property(x => x.PendingEmail).HasMaxLength(Limits.Email);
-            e.HasIndex(x => x.EmailToken).IsUnique();
             e.Property(x => x.Lang).HasMaxLength(8);
             e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientId).OnDelete(DeleteBehavior.SetNull);
         });

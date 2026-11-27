@@ -11,24 +11,8 @@ public record ThreadView(List<Message> Messages, bool ViewerIsSanta, string Othe
 
 // The participant's own page in a game. It shows whoever is signed in to that game on this device;
 // anyone else is sent to the sign-in form on the invite page.
-public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text) : PageModel
+public class MeModel(AppDb db, Notifier notifier, Text text) : PageModel
 {
-    // The outcomes of the e-mail form, passed back as ?mail=… so the page opens at the form after the post.
-    private static readonly Dictionary<string, string> MailErrors = new()
-    {
-        ["invalid"] = "MailInvalid",
-        ["same"] = "MailSame",
-        ["taken"] = "MailUsed",
-        ["wait"] = "MailWait",
-        ["failed"] = "MailFailed",
-    };
-
-    public bool MailEnabled => mailer.Enabled;
-    // Whoever signed up with their address signs in with it: it is linked already and can't be changed or unlinked.
-    public bool SignsInWithEmail => Me.Email is not null && Me.Login == Me.Email;
-    public bool MailPending => Me.PendingEmail is not null && Me.EmailSentAt > DateTime.UtcNow - MailLinks.Life;
-    public string? MailErrorKey { get; private set; }
-    [BindProperty] public string? Email { get; set; }
     public Participant Me { get; private set; } = null!;
     public List<Message> SantaThread { get; private set; } = [];
     public List<Message> AskThread { get; private set; } = [];
@@ -45,7 +29,7 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
     [BindProperty] public string? Password { get; set; }
     [BindProperty] public string? PasswordRepeat { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string invite, bool @new = false, bool saved = false, bool password = false, string? mail = null)
+    public async Task<IActionResult> OnGetAsync(string invite, bool @new = false, bool saved = false, bool password = false)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
 
@@ -57,7 +41,6 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
         IsNew = @new;
         IsSaved = saved;
         PasswordSaved = password;
-        MailErrorKey = mail is not null ? MailErrors.GetValueOrDefault(mail) : null;
         FillForm();
         return Page();
     }
@@ -112,52 +95,6 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
         await db.SaveChangesAsync();
         ParticipantCookie.Set(Response, Me.GameId, Me.Token);
         return Redirect($"/play/{invite}?password=true");
-    }
-
-    // Sends a confirmation link to the address. It is linked only once that link is used; until then a previously
-    // linked address stays.
-    public async Task<IActionResult> OnPostMailAsync(string invite)
-    {
-        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-        if (!mailer.Enabled || SignsInWithEmail) return NotFound();
-
-        var email = Emails.Normalize(Email);
-        var now = DateTime.UtcNow;
-        var problem = email is null ? "invalid"
-            : email == Me.Email ? "same"
-            : Signups.Taken(Me.Game, email, except: Me.Id) ? "taken"
-            : Me.EmailSentAt > now - MailLinks.Pause ? "wait"
-            : null;
-        if (problem is not null) return Redirect($"/play/{invite}?mail={problem}#mail");
-
-        Me.PendingEmail = email;
-        Me.EmailToken = Tokens.New();
-        Me.EmailSentAt = now;
-        await db.SaveChangesAsync();
-        var link = Request.Abs($"/mail/{Me.EmailToken}");
-        if (await mailer.SendAsync(new Mail("confirm", email!, text["MailConfirmSubject"], text.F("MailConfirmBody", Me.Name, link)), HttpContext.RequestAborted))
-            return Redirect($"/play/{invite}#mail");
-
-        // Nothing went out, so nothing waits for confirmation, and the participant can try again right away.
-        Me.PendingEmail = null;
-        Me.EmailToken = null;
-        Me.EmailSentAt = null;
-        await db.SaveChangesAsync();
-        return Redirect($"/play/{invite}?mail=failed#mail");
-    }
-
-    // Unlinks the address. A reset link already mailed to it and not used yet stops working too.
-    public async Task<IActionResult> OnPostMailRemoveAsync(string invite)
-    {
-        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-        if (SignsInWithEmail) return NotFound();
-
-        Me.Email = null;
-        Me.PendingEmail = null;
-        Me.EmailToken = null;
-        if (Me.ResetSentAt is not null && Me.ResetUsedAt is null) Me.ResetToken = null;
-        await db.SaveChangesAsync();
-        return Redirect($"/play/{invite}#mail");
     }
 
     public async Task<IActionResult> OnPostLogoutAsync(string invite)
@@ -260,6 +197,5 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
         Name = Me.Name;
         Wishlist = Me.Wishlist;
         NotWanted = Me.NotWanted;
-        Email = MailPending ? Me.PendingEmail : Me.Email;
     }
 }

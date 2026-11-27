@@ -164,16 +164,14 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
         return Redirect($"/join/{token}?forgot=true");
     }
 
-    // By login (the e-mail address for everyone who signed up with one), by a linked address, or by name for those who
-    // joined before logins existed and haven't chosen one yet.
+    // By login (the e-mail address for everyone who signed up with one), or by name for those who joined before logins
+    // existed and haven't chosen one yet.
     private Participant? Find(string? typed)
     {
         var clean = Limits.Clean(typed, Limits.Email);
         if (clean is null) return null;
         var login = clean.ToLowerInvariant();
-        var byAddress = Game.Participants.Where(p => p.Email == login).Take(2).ToList();
         return Game.Participants.FirstOrDefault(p => p.Login == login)
-            ?? (byAddress.Count == 1 ? byAddress[0] : null)
             ?? Game.Participants.FirstOrDefault(p => p.Login is null && SameName(p.Name, clean));
     }
 

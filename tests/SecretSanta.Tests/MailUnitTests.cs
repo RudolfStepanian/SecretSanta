@@ -48,7 +48,7 @@ public class MailTextTests
 {
     // The link stands on a line of its own, so mail apps make it clickable.
     [Theory]
-    [InlineData("MailConfirmBody")]
+    [InlineData("MailSignupBody")]
     [InlineData("MailResetBody")]
     public void Every_language_greets_by_name_and_carries_the_link(string key)
     {

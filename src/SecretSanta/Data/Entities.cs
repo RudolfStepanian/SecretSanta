@@ -34,12 +34,9 @@ public class Participant
     // How many times the organizer reset the password, and when last: shown on the participant's page.
     public int ResetCount { get; set; }
     public DateTime? ResetAt { get; set; }
-    // The confirmed address that a forgotten password can be reset through; only the participant sees it.
+    // The address confirmed at sign-up, also the login: notices and password resets go to it. Only the participant
+    // sees it. Null when there was no mail relay to confirm it.
     public string? Email { get; set; }
-    // An address waiting for confirmation, the token of the link sent to it and when that link was sent.
-    public string? PendingEmail { get; set; }
-    public string? EmailToken { get; set; }
-    public DateTime? EmailSentAt { get; set; }
     // The language the participant last opened their page in: e-mails to them are written in it.
     public string? Lang { get; set; }
     // When the participant last opened their page, and when the last e-mail about new messages went to them: the next
