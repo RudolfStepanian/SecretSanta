@@ -1,6 +1,6 @@
 # Secret Santa
 
-A small Secret Santa site for a team. No e-mails: colleagues sign up inside a game with a login and a password, and the organizer manages the game through a secret link.
+A small Secret Santa site for a team. Colleagues sign up inside a game with a login and a password, and the organizer manages the game through a secret link. An e-mail address is optional: a participant can link one to reset a forgotten password.
 
 ## How it works
 
@@ -22,7 +22,7 @@ Rules:
 - A login is 3 to 32 Latin letters, digits, dots, hyphens or underscores, unique within a game and case-insensitive. Participants who joined before logins existed sign in with their name until they choose a login on their page.
 - Passwords are stored as salted PBKDF2 hashes (ASP.NET Core `PasswordHasher`). Five wrong passwords in a row lock the participant for 15 minutes.
 - A device stays signed in to a game (one cookie per game) until the participant signs out at the bottom of their page.
-- A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password. The link signs in only once; opened again, it says when it was opened, so a participant can tell that someone else used it first.
+- A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password. A participant with a linked e-mail address can also get such a link by mail (see [E-mail](#e-mail)). Opening the link only shows a button, because mail scanners and chat link previews open links too; the button signs the device in, signs every other device out and asks for a new password. The link works only once; opened again, it says when it was used, so a participant can tell that someone else used it first.
 - Personal links from before passwords (`/me/{token}`) still sign the device in; the page then asks for a login and a password, and once they are set the link stops working.
 - A password reset also closes the participant's card again and is counted. The participant's page shows how many resets there were, when the last one was and when the card was opened, so a sign-in by someone else is noticeable.
 - Until a participant opens their card, their page holds neither the recipient's name nor the wishlist nor the messages: the card animation fetches that part when the card is opened (without JavaScript the form post opens the card).
@@ -41,6 +41,24 @@ Participants can turn on browser push notifications on their own page. A notific
 - On an iPhone, web push works only for a site added to the Home Screen (iOS 16.4 or later); the page explains this, and the site ships a web app manifest and icons for it.
 - Signing out on a device turns its notifications off.
 
+## E-mail
+
+A participant can link an e-mail address on their own page and reset a forgotten password through it ("Forgot your password?" under the sign-in form). Nothing else is mailed, and only the participant sees the address.
+
+- Linking: the page mails a confirmation link (`/mail/{token}`); the address counts once the button behind that link is pressed. Until then an address linked before stays.
+- Forgot your password: the participant types their login and gets a one-time link (`/me/{token}`, the same kind the organizer hands out) at the linked address. Asking changes nothing else, so the old password works until the link is used. The answer is the same whether or not the login exists or has an address.
+- Links from e-mails work for a day, and a participant gets at most one e-mail of each kind per five minutes. A mailed reset is not counted as an organizer reset and doesn't close the card. Unlinking the address also stops a reset link already mailed to it.
+- Mail goes through a small Google Apps Script in a Gmail account made for the site (`tools/mail-relay.gs`): the site posts each e-mail to it over HTTPS, because a free Render instance can't open SMTP connections, and the mail comes from a real Gmail address, so it passes spam checks without a domain of our own. Gmail lets such a script mail 100 recipients a day.
+- Without a relay the site offers no e-mail at all and works as before. In Development without a relay, e-mails are written to the log instead.
+
+Setting up the relay:
+
+1. Create a Gmail account for the site.
+2. In it, open [script.google.com](https://script.google.com), create a project and paste `tools/mail-relay.gs` into it.
+3. Make a random key, for example in Git Bash with `openssl rand -hex 24`, and add it under **Project Settings → Script properties** as `KEY`.
+4. **Deploy → New deployment → Web app**, with *Execute as: Me* and *Who has access: Anyone*. Allow the script to send e-mail as you when Google asks, and copy the web app URL.
+5. On Render, set `Mail__ScriptUrl` to that URL and `Mail__Key` to the same key. After the restart the startup log says `E-mail is on, through the relay.`
+
 ## Stack
 
 ASP.NET Core 10 (LTS) Razor Pages, EF Core with PostgreSQL, no JavaScript framework.
@@ -53,7 +71,7 @@ The free Render instance has 0.1 CPU, so startup is mostly CPU time, not the dat
 
 `GET /healthz` (and `HEAD`) answers `200 ok` without touching the database and with `Cache-Control: no-store`.
 
-The only setting is the database: `DATABASE_URL` (`postgres://user:password@host:port/db?sslmode=require`) or `ConnectionStrings:Default` (Npgsql format).
+The only required setting is the database: `DATABASE_URL` (`postgres://user:password@host:port/db?sslmode=require`) or `ConnectionStrings:Default` (Npgsql format). E-mail is optional: `Mail__ScriptUrl` and `Mail__Key` (see [E-mail](#e-mail)).
 
 ## Run locally
 

@@ -34,6 +34,9 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
             e.Property(x => x.NotWanted).HasMaxLength(Limits.NotWanted);
             e.HasIndex(x => x.Token).IsUnique();
             e.HasIndex(x => x.ResetToken).IsUnique();
+            e.Property(x => x.Email).HasMaxLength(Limits.Email);
+            e.Property(x => x.PendingEmail).HasMaxLength(Limits.Email);
+            e.HasIndex(x => x.EmailToken).IsUnique();
             e.HasOne(x => x.Recipient).WithMany().HasForeignKey(x => x.RecipientId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -80,6 +83,7 @@ public static class Limits
     public const int PasswordMin = 6;
     public const int Password = 100;
     public const int PushEndpoint = 2000;
+    public const int Email = 254;
     public const int MaxParticipants = 200;
 
     public static string? Clean(string? value, int max)

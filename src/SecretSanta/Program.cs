@@ -24,6 +24,25 @@ builder.Services.AddSingleton<PushQueue>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddHostedService<PushDelivery>();
 builder.Services.AddHostedService<GameCleanupService>();
+// E-mail goes through the relay once it is configured; in Development without one, to the log; otherwise it is off.
+var mail = builder.Configuration.GetSection("Mail");
+builder.Services.Configure<MailOptions>(mail);
+string mailMode;
+if (mail.Get<MailOptions>() is { Configured: true })
+{
+    builder.Services.AddHttpClient<IMailSender, ScriptMailSender>(c => c.Timeout = TimeSpan.FromSeconds(20));
+    mailMode = "on, through the relay";
+}
+else if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IMailSender, LogMailSender>();
+    mailMode = "written to the log";
+}
+else
+{
+    builder.Services.AddSingleton<IMailSender, NoMailSender>();
+    mailMode = "off: Mail__ScriptUrl and Mail__Key are not set";
+}
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();
 builder.Services.AddRateLimiter(o =>
@@ -58,6 +77,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 if (!Fmt.HasLocalZone) app.Logger.LogWarning("Time zone {Zone} was not found; dates are shown in UTC.", Fmt.ZoneId);
+app.Logger.LogInformation("E-mail is {Mode}.", mailMode);
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {

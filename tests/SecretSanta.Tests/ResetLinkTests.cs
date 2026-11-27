@@ -24,7 +24,14 @@ public sealed class ResetLinkTests : IAsyncDisposable
         var (game, person) = await SeedAsync(withPassword: true);
 
         var link = await ResetAsync(game, person);
-        var first = await OpenAsync(link);
+        // Opening the link, as a mail scanner or a chat preview can, only shows the button.
+        var viewed = await ViewAsync(link);
+        Assert.IsType<PageResult>(viewed.Result);
+        Assert.Null(viewed.Page.UsedAt);
+        Assert.False(viewed.Page.Expired);
+        Assert.Empty(viewed.SetCookie);
+
+        var first = await UseAsync(link);
         Assert.Equal($"/play/{game.InviteToken}", Assert.IsType<RedirectResult>(first.Result).Url);
         await using (var db = NewDb())
         {
@@ -33,10 +40,11 @@ public sealed class ResetLinkTests : IAsyncDisposable
             Assert.Contains($"ss_{game.Id}={token}", first.SetCookie);
         }
 
-        var again = await OpenAsync(link);
+        var again = await UseAsync(link);
         Assert.IsType<PageResult>(again.Result);
         Assert.NotNull(again.Page.UsedAt);
         Assert.Empty(again.SetCookie);
+        Assert.NotNull((await ViewAsync(link)).Page.UsedAt);
     }
 
     [Fact]
@@ -48,8 +56,8 @@ public sealed class ResetLinkTests : IAsyncDisposable
         var old = await ResetAsync(game, person);
         var current = await ResetAsync(game, person);
 
-        Assert.IsType<NotFoundResult>((await OpenAsync(old)).Result);
-        Assert.IsType<RedirectResult>((await OpenAsync(current)).Result);
+        Assert.IsType<NotFoundResult>((await UseAsync(old)).Result);
+        Assert.IsType<RedirectResult>((await UseAsync(current)).Result);
     }
 
     [Fact]
@@ -58,8 +66,35 @@ public sealed class ResetLinkTests : IAsyncDisposable
         await CreateDatabaseAsync();
         var (_, person) = await SeedAsync(withPassword: false);
 
-        Assert.IsType<RedirectResult>((await OpenAsync(person.Token)).Result);
-        Assert.IsType<RedirectResult>((await OpenAsync(person.Token)).Result);
+        Assert.IsType<RedirectResult>((await ViewAsync(person.Token)).Result);
+        Assert.IsType<RedirectResult>((await ViewAsync(person.Token)).Result);
+    }
+
+    [Fact]
+    public async Task A_mailed_link_works_for_a_day_and_then_changes_nothing()
+    {
+        await CreateDatabaseAsync();
+        var (_, early) = await SeedAsync(withPassword: true);
+        var (_, late) = await SeedAsync(withPassword: true);
+        var fresh = await MailedLinkAsync(early, sentHoursAgo: 23);
+        var stale = await MailedLinkAsync(late, sentHoursAgo: 25);
+
+        Assert.True((await ViewAsync(stale)).Page.Expired);
+        var refused = await UseAsync(stale);
+        Assert.IsType<PageResult>(refused.Result);
+        Assert.True(refused.Page.Expired);
+        Assert.Empty(refused.SetCookie);
+        Assert.False((await ViewAsync(fresh)).Page.Expired);
+        Assert.IsType<RedirectResult>((await UseAsync(fresh)).Result);
+
+        await using var db = NewDb();
+        var stalePerson = await db.Participants.SingleAsync(p => p.Id == late.Id, Ct);
+        Assert.NotNull(stalePerson.PasswordHash);
+        Assert.Equal(late.Token, stalePerson.Token);
+        // The used link signed the other devices out and asks for a new password, as the organizer's link does.
+        var freshPerson = await db.Participants.SingleAsync(p => p.Id == early.Id, Ct);
+        Assert.Null(freshPerson.PasswordHash);
+        Assert.NotEqual(early.Token, freshPerson.Token);
     }
 
     private async Task<string> ResetAsync(Game game, Participant person)
@@ -72,11 +107,28 @@ public sealed class ResetLinkTests : IAsyncDisposable
         return path["/me/".Length..];
     }
 
-    private async Task<(IActionResult Result, EnterModel Page, string SetCookie)> OpenAsync(string token)
+    // What "Forgot your password?" leaves behind: a link token and when it was mailed.
+    private async Task<string> MailedLinkAsync(Participant person, int sentHoursAgo)
+    {
+        await using var db = NewDb();
+        var token = Tokens.New();
+        await db.Participants.Where(p => p.Id == person.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(p => p.ResetToken, token)
+            .SetProperty(p => p.ResetSentAt, DateTime.UtcNow.AddHours(-sentHoursAgo)), Ct);
+        return token;
+    }
+
+    private Task<(IActionResult Result, EnterModel Page, string SetCookie)> ViewAsync(string token) =>
+        CallAsync(page => page.OnGetAsync(token));
+
+    private Task<(IActionResult Result, EnterModel Page, string SetCookie)> UseAsync(string token) =>
+        CallAsync(page => page.OnPostAsync(token));
+
+    private async Task<(IActionResult Result, EnterModel Page, string SetCookie)> CallAsync(Func<EnterModel, Task<IActionResult>> call)
     {
         await using var db = NewDb();
         var page = WithContext(new EnterModel(db));
-        var result = await page.OnGetAsync(token);
+        var result = await call(page);
         return (result, page, page.Response.Headers.SetCookie.ToString());
     }
 

@@ -229,7 +229,7 @@ p { margin: 0 0 10px; }
 label { display: block; font-weight: 600; margin: 16px 0 6px; }
 label + .hint { margin-top: -4px; }
 
-input[type="text"], input[type="password"], input[type="date"], textarea, select {
+input[type="text"], input[type="password"], input[type="email"], input[type="date"], textarea, select {
   width: 100%;
   font: inherit;
   color: inherit;
@@ -243,6 +243,12 @@ textarea.short { min-height: 72px; }
 input:focus, textarea:focus, select:focus { outline: 3px solid rgba(230, 184, 74, 0.6); border-color: var(--gold); }
 
 .field-error { color: var(--red); font-size: 0.9rem; font-weight: 600; margin: 6px 0 0; }
+
+/* "Forgot your password?" under the sign-in form */
+.forgot { margin-top: 18px; }
+.forgot summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.forgot summary:hover { color: var(--text); }
+.forgot[open] summary { margin-bottom: 6px; }
 
 /* Buttons */
 .btn {

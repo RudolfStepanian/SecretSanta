@@ -29,9 +29,17 @@ public class Participant
     // The one-time link from a password reset, and when it was opened: opened again, the link shows that time.
     public string? ResetToken { get; set; }
     public DateTime? ResetUsedAt { get; set; }
+    // When the reset link went out by e-mail: such a link works for a day. The organizer's link has none and doesn't expire.
+    public DateTime? ResetSentAt { get; set; }
     // How many times the organizer reset the password, and when last: shown on the participant's page.
     public int ResetCount { get; set; }
     public DateTime? ResetAt { get; set; }
+    // The confirmed address that a forgotten password can be reset through; only the participant sees it.
+    public string? Email { get; set; }
+    // An address waiting for confirmation, the token of the link sent to it and when that link was sent.
+    public string? PendingEmail { get; set; }
+    public string? EmailToken { get; set; }
+    public DateTime? EmailSentAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }

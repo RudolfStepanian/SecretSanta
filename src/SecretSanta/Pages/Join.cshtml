@@ -96,5 +96,26 @@
         {
             <p class="hint">@T["JoinClosed"]</p>
         }
+        @if (Model.MailEnabled)
+        {
+            <details class="forgot" id="forgot" open="@Model.ForgotSent">
+                <summary>@T["ForgotTitle"]</summary>
+                @if (Model.ForgotSent)
+                {
+                    <div class="alert ok">@T["ForgotSent"]</div>
+                }
+                else
+                {
+                    <p class="hint">@T["ForgotHint"]</p>
+                }
+                <form method="post" asp-page-handler="Forgot">
+                    <label for="forgot-login">@T["Login"]</label>
+                    <input id="forgot-login" name="ForgotLogin" type="text" required maxlength="@Limits.PersonName" autocomplete="username" autocapitalize="none" spellcheck="false" />
+                    <div class="actions">
+                        <button type="submit" class="btn small secondary">@T["ForgotButton"]</button>
+                    </div>
+                </form>
+            </details>
+        }
     }
 </section>

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
@@ -12,10 +13,15 @@ namespace SecretSanta.Tests;
 
 // The whole app against a real PostgreSQL, in a throwaway database on the server from SECRETSANTA_TEST_DB
 // (CI starts one). Tests that use it call SkipWithoutDatabase first, so without that server they are skipped.
-public sealed class SantaApp : WebApplicationFactory<Program>, IAsyncLifetime
+// The mail the app sends lands in Mailbox; SantaAppWithoutMail is the site as it runs before a mail relay is set up.
+public class SantaApp : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private static readonly string DbServer = Environment.GetEnvironmentVariable("SECRETSANTA_TEST_DB") ?? "";
     private string? database;
+
+    public TestMailbox Mailbox { get; } = new();
+
+    protected virtual bool WithMail => true;
 
     public static void SkipWithoutDatabase() =>
         Assert.SkipWhen(DbServer.Length == 0, "SECRETSANTA_TEST_DB is not set, so there is no PostgreSQL to test against.");
@@ -39,9 +45,12 @@ public sealed class SantaApp : WebApplicationFactory<Program>, IAsyncLifetime
             Database = database,
             GssEncryptionMode = GssEncryptionMode.Disable,
         }.ConnectionString);
-        // Push messages stay in the queue, where tests read them, instead of going to the browsers' push services.
-        builder.ConfigureTestServices(services => services.Remove(
-            services.Single(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(PushDelivery))));
+        builder.ConfigureTestServices(services =>
+        {
+            // Push messages stay in the queue, where tests read them, instead of going to the browsers' push services.
+            services.Remove(services.Single(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(PushDelivery)));
+            if (WithMail) services.AddSingleton<IMailSender>(Mailbox);
+        });
     }
 
     public override async ValueTask DisposeAsync()
@@ -53,6 +62,37 @@ public sealed class SantaApp : WebApplicationFactory<Program>, IAsyncLifetime
         await connection.OpenAsync();
         await using var drop = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{database}\" WITH (FORCE)", connection);
         await drop.ExecuteNonQueryAsync();
+    }
+}
+
+public sealed class SantaAppWithoutMail : SantaApp
+{
+    protected override bool WithMail => false;
+}
+
+// Keeps the mail the app sends. With Fail set, sending fails the way an unreachable relay does.
+public sealed class TestMailbox : IMailSender
+{
+    private readonly ConcurrentQueue<Mail> sent = new();
+
+    public bool Enabled => true;
+    public bool Fail { get; set; }
+    public IReadOnlyList<Mail> Sent => [.. sent];
+
+    public Task<bool> SendAsync(Mail mail, CancellationToken ct)
+    {
+        if (Fail) return Task.FromResult(false);
+        sent.Enqueue(mail);
+        return Task.FromResult(true);
+    }
+
+    // The path of the first link to this site in the last mail to the address.
+    public string LinkTo(string address)
+    {
+        var mail = sent.Last(m => m.To == address);
+        var link = Regex.Match(mail.Body, @"https?://[^/\s]+(/[^\s]+)").Groups[1].Value;
+        Assert.NotEmpty(link);
+        return link;
     }
 }
 

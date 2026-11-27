@@ -147,6 +147,7 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
             person.Token = Tokens.New(); // signs the participant out on every device
             person.ResetToken = Tokens.New();
             person.ResetUsedAt = null;
+            person.ResetSentAt = null; // the organizer's link has no time limit
             // The card closes again and the reset is counted, so whoever signs in next leaves a trace the participant sees.
             person.RevealedAt = null;
             person.ResetCount++;

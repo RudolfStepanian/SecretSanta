@@ -165,6 +165,16 @@ namespace SecretSanta.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<DateTime?>("EmailSentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EmailToken")
+                        .HasColumnType("text");
+
                     b.Property<int>("FailedLogins")
                         .HasColumnType("integer");
 
@@ -193,6 +203,10 @@ namespace SecretSanta.Data.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
+                    b.Property<string>("PendingEmail")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
                     b.Property<int?>("RecipientId")
                         .HasColumnType("integer");
 
@@ -201,6 +215,9 @@ namespace SecretSanta.Data.Migrations
 
                     b.Property<int>("ResetCount")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ResetSentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ResetToken")
                         .HasColumnType("text");
@@ -220,6 +237,9 @@ namespace SecretSanta.Data.Migrations
                         .HasColumnType("character varying(2000)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmailToken")
+                        .IsUnique();
 
                     b.HasIndex("RecipientId");
 

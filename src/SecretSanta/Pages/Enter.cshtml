@@ -1,11 +1,27 @@
 @page "/me/{token}"
 @model EnterModel
 @{
-    ViewData["Title"] = T["ResetUsedTitle"];
+    var title = Model.UsedAt is not null ? T["ResetUsedTitle"] : Model.Expired ? T["ResetExpiredTitle"] : T["ResetEnterTitle"];
+    ViewData["Title"] = title;
 }
 
 <section class="card waiting">
-    <h1>@T["ResetUsedTitle"]</h1>
-    <p class="muted">@T.F("ResetUsedText", Fmt.Local(Model.UsedAt!.Value))</p>
-    <a class="btn secondary" href="/">@T["BackHome"]</a>
+    <h1>@title</h1>
+    @if (Model.UsedAt is { } usedAt)
+    {
+        <p class="muted">@T.F("ResetUsedText", Fmt.Local(usedAt))</p>
+        <a class="btn secondary" href="/">@T["BackHome"]</a>
+    }
+    else if (Model.Expired)
+    {
+        <p class="muted">@T["ResetExpiredText"]</p>
+        <a class="btn secondary" href="/">@T["BackHome"]</a>
+    }
+    else
+    {
+        <p class="muted">@T["ResetEnterText"]</p>
+        <form method="post">
+            <button type="submit" class="btn green">@T["ResetEnterButton"]</button>
+        </form>
+    }
 </section>

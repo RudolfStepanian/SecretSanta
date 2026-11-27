@@ -71,7 +71,8 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal(HttpStatusCode.Redirect, reset.StatusCode);
         var link = Regex.Match(await game.Organizer.PageAsync(game.Admin), "/me/[A-Za-z0-9_-]+").Value;
         var device = await Browser.OpenAsync(app);
-        Assert.Equal(HttpStatusCode.Redirect, (await device.GetAsync(link)).StatusCode);
+        Assert.Contains("Sign in and set a password", await device.PageAsync(link));
+        Assert.Equal(HttpStatusCode.Redirect, (await device.PostAsync(link, link, [])).StatusCode);
 
         var page = await device.PageAsync(play);
         Assert.Contains("class=\"deck\"", page);
