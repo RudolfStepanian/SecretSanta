@@ -83,7 +83,7 @@
     {
         <form method="post" asp-page-handler="SignIn">
             <label for="signin-login">@T["SignInId"]</label>
-            <input id="signin-login" name="SignInLogin" type="text" required maxlength="@Limits.Email" value="@Model.SignInLogin" autocomplete="username" autocapitalize="none" spellcheck="false" />
+            <input id="signin-login" name="SignInLogin" type="text" inputmode="email" required maxlength="@Limits.Email" value="@Model.SignInLogin" autocomplete="username" autocapitalize="none" spellcheck="false" />
 
             <label for="signin-password">@T["Password"]</label>
             <input id="signin-password" name="SignInPassword" type="password" required maxlength="@Limits.Password" autocomplete="current-password" />
@@ -114,7 +114,7 @@
                 }
                 <form method="post" asp-page-handler="Forgot">
                     <label for="forgot-login">@T["SignInId"]</label>
-                    <input id="forgot-login" name="ForgotLogin" type="text" required maxlength="@Limits.Email" autocomplete="username" autocapitalize="none" spellcheck="false" />
+                    <input id="forgot-login" name="ForgotLogin" type="text" inputmode="email" required maxlength="@Limits.Email" autocomplete="username" autocapitalize="none" spellcheck="false" />
                     <div class="actions">
                         <button type="submit" class="btn small secondary">@T["ForgotButton"]</button>
                     </div>

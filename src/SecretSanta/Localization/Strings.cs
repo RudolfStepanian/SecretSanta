@@ -125,7 +125,7 @@ public static class Strings
         ["SetPasswordHint"] = ["С ними вы сможете входить с любого устройства через ссылку-приглашение. Ссылка, по которой вы сюда попали, после этого перестанет работать.", "With them you can sign in from any device through the invite link. The link that brought you here will then stop working.", "Դրանցով կկարողանաք մուտք գործել ցանկացած սարքից՝ հրավերի հղման միջոցով։ Այն հղումը, որով այստեղ եք եկել, այնուհետև այլևս չի աշխատի։"],
         ["SetLoginHint"] = ["Придумайте логин: дальше вы будете входить по нему и своему паролю с любого устройства через ссылку-приглашение.", "Choose a login: from now on you sign in with it and your password from any device through the invite link.", "Ընտրեք մուտքանուն․ այսուհետ մուտք կգործեք դրանով և ձեր գաղտնաբառով ցանկացած սարքից՝ հրավերի հղման միջոցով։"],
         ["PasswordSet"] = ["Сохранено. Теперь входите по логину и паролю.", "Saved. From now on, sign in with your login and password.", "Պահպանված է։ Այսուհետ մուտք գործեք մուտքանունով և գաղտնաբառով։"],
-        ["YourLogin"] = ["Ваш логин: {0}", "Your login: {0}", "Ձեր մուտքանունը՝ {0}"],
+        ["YourLogin"] = ["Вы вошли как {0}", "Signed in as {0}", "Մուտք եք գործել որպես {0}"],
         ["Logout"] = ["Выйти", "Sign out", "Դուրս գալ"],
 
 
