@@ -28,11 +28,6 @@ public sealed class DeleteTests(SantaApp app) : IClassFixture<SantaApp>
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-            db.PushSubscriptions.Add(new PushSubscription
-            {
-                ParticipantId = ids[2], Endpoint = "https://fcm.googleapis.com/fcm/send/delete-test", P256dh = "key", Auth = "secret", Lang = "ru", CreatedAt = DateTime.UtcNow,
-            });
-            await db.SaveChangesAsync(Ct);
             Assert.Equal(2, await db.Messages.CountAsync(m => ids.Contains(m.ParticipantId), Ct));
         }
         Assert.Contains("The game will be deleted automatically on", await game.Organizer.PageAsync(game.Admin));
@@ -51,7 +46,6 @@ public sealed class DeleteTests(SantaApp app) : IClassFixture<SantaApp>
             Assert.False(await db.Participants.AnyAsync(p => ids.Contains(p.Id), Ct));
             Assert.False(await db.Exclusions.AnyAsync(x => ids.Contains(x.FirstId) || ids.Contains(x.SecondId), Ct));
             Assert.False(await db.Messages.AnyAsync(m => ids.Contains(m.ParticipantId), Ct));
-            Assert.False(await db.PushSubscriptions.AnyAsync(s => ids.Contains(s.ParticipantId), Ct));
         }
     }
 

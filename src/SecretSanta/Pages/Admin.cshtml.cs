@@ -8,9 +8,9 @@ namespace SecretSanta.Pages;
 
 public class AdminModel(AppDb db, Notifier notifier) : PageModel
 {
+    public bool MailEnabled => notifier.Enabled;
     public Game Game { get; private set; } = null!;
     public List<Participant> People { get; private set; } = [];
-    public HashSet<int> Notified { get; private set; } = [];
     public List<(int Id, string A, string B)> Pairs { get; private set; } = [];
     public bool Created { get; private set; }
     [TempData] public string? ErrorKey { get; set; }
@@ -105,7 +105,7 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         foreach (var p in Game.Participants) p.RecipientId = pairs[p.Id];
         Game.DrawnAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        await notifier.NotifyAsync(Game.Participants.Select(p => p.Id).ToList(), "PushDrawDone", Request, $"/play/{Game.InviteToken}");
+        notifier.DrawDone(Game, Request);
         return Back(token);
     }
 
@@ -120,10 +120,11 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
             p.RecipientId = null;
             p.RevealedAt = null;
             p.GiftReadyAt = null;
+            p.MessageMailAt = null; // the messages are gone, so the next one is mailed again
         }
         Game.DrawnAt = null;
         await db.SaveChangesAsync();
-        if (wasDrawn) await notifier.NotifyAsync(Game.Participants.Select(p => p.Id).ToList(), "PushDrawCancelled", Request, $"/play/{Game.InviteToken}");
+        if (wasDrawn) notifier.DrawCancelled(Game, Request);
         return Back(token);
     }
 
@@ -176,7 +177,6 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         Pairs = game.Exclusions
             .Select(x => (x.Id, names.GetValueOrDefault(x.FirstId, "?"), names.GetValueOrDefault(x.SecondId, "?")))
             .ToList();
-        Notified = (await db.PushSubscriptions.Where(s => s.Participant.GameId == game.Id).Select(s => s.ParticipantId).ToListAsync()).ToHashSet();
         return true;
     }
 

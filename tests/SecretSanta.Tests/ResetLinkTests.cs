@@ -100,7 +100,7 @@ public sealed class ResetLinkTests : IAsyncDisposable
     private async Task<string> ResetAsync(Game game, Participant person)
     {
         await using var db = NewDb();
-        var admin = WithContext(new AdminModel(db, new Notifier(db, new PushQueue())));
+        var admin = WithContext(new AdminModel(db, new Notifier(db, new MailQueue(), new NoMailSender())));
         await admin.OnPostResetAsync(game.AdminToken, person.Id);
         var path = new Uri(admin.ResetUrl!).AbsolutePath;
         Assert.StartsWith("/me/", path);

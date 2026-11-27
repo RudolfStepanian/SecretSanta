@@ -47,8 +47,8 @@ public class SantaApp : WebApplicationFactory<Program>, IAsyncLifetime
         }.ConnectionString);
         builder.ConfigureTestServices(services =>
         {
-            // Push messages stay in the queue, where tests read them, instead of going to the browsers' push services.
-            services.Remove(services.Single(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(PushDelivery)));
+            // E-mails about game events stay in the queue, where tests read them.
+            services.Remove(services.Single(d => d.ServiceType == typeof(IHostedService) && d.ImplementationType == typeof(MailDelivery)));
             if (WithMail) services.AddSingleton<IMailSender>(Mailbox);
         });
     }

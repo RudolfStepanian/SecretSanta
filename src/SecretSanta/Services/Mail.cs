@@ -5,7 +5,7 @@ using SecretSanta.Data;
 
 namespace SecretSanta.Services;
 
-// One plain-text e-mail. The log gets its kind ("confirm" or "reset"), never the address.
+// One plain-text e-mail. The log gets its kind ("confirm", "reset", "draw", "undraw" or "message"), never the address.
 public sealed record Mail(string Kind, string To, string Subject, string Body);
 
 public interface IMailSender
@@ -37,7 +37,7 @@ public static class MailLinks
 
 // Sends through the Apps Script web app of the site's own Gmail account (tools/mail-relay.gs): an HTTPS post, because
 // a free Render instance can't open SMTP connections. Gmail lets such a script mail 100 recipients a day.
-public sealed class ScriptMailSender(HttpClient http, IOptions<MailOptions> options, ILogger<ScriptMailSender> logger) : IMailSender
+public sealed class ScriptMailSender(HttpClient http, IOptions<MailOptions> options, MailQuota quota, ILogger<ScriptMailSender> logger) : IMailSender
 {
     public bool Enabled => true;
 
@@ -51,6 +51,7 @@ public sealed class ScriptMailSender(HttpClient http, IOptions<MailOptions> opti
             var reply = Read(await response.Content.ReadAsStringAsync(ct));
             if (response.IsSuccessStatusCode && reply is { Ok: true })
             {
+                if (reply.Left is { } left) quota.Report(left, DateTime.UtcNow);
                 logger.LogInformation("E-mail {Kind} sent; the relay can send {Left} more today.", mail.Kind, reply.Left);
                 return true;
             }

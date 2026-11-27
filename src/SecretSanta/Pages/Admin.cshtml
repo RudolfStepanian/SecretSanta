@@ -95,9 +95,9 @@
                             {
                                 <text> · @T["NoPassword"]</text>
                             }
-                            @if (Model.Notified.Contains(p.Id))
+                            @if (Model.MailEnabled && p.Email is null)
                             {
-                                <text> · @T["NotifyMark"]</text>
+                                <text> · @T["NoMail"]</text>
                             }
                             @if (drawn)
                             {

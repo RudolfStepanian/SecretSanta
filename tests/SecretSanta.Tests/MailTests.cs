@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SecretSanta.Data;
+using SecretSanta.Services;
 
 namespace SecretSanta.Tests;
 
@@ -224,6 +225,16 @@ public sealed class MailOffTests(SantaAppWithoutMail app) : IClassFixture<SantaA
         Assert.DoesNotContain("Forgot your password?", await anahit.PageAsync(join));
         Assert.Equal(HttpStatusCode.NotFound, (await anahit.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "anahit@example.com" })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await anahit.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "anahit" })).StatusCode);
+        Assert.DoesNotContain("no e-mail", await game.Organizer.PageAsync(game.Admin));
+
+        // An address linked while a relay was set up gets no notices once it is gone.
+        await using (var scope = app.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+            await db.Participants.Where(p => p.Login == "anahit").ExecuteUpdateAsync(s => s.SetProperty(p => p.Email, "anahit@example.com"), TestContext.Current.CancellationToken);
+        }
+        Assert.Equal(HttpStatusCode.Redirect, (await game.Organizer.PostAsync(game.Admin, game.Admin + "?handler=Draw", [])).StatusCode);
+        Assert.False(app.Services.GetRequiredService<MailQueue>().Reader.TryRead(out _));
         Assert.Empty(app.Mailbox.Sent);
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SecretSanta.Localization;
@@ -94,14 +95,25 @@ public class ScriptMailSenderTests
     }
 
     [Fact]
+    public async Task The_relay_answer_tells_how_many_emails_are_left_today()
+    {
+        var quota = new MailQuota();
+        var sender = Sender(_ => Task.FromResult(Answer(HttpStatusCode.OK, $$"""{"ok":true,"left":{{MailQuota.Reserve - 1}}}""")), quota);
+
+        Assert.True(await sender.SendAsync(Letter, Ct));
+        Assert.True(quota.LowAt(DateTime.UtcNow));
+    }
+
+    [Fact]
     public async Task A_relay_that_does_not_answer_is_a_failure()
     {
         Assert.False(await Sender(_ => throw new HttpRequestException("No route to host")).SendAsync(Letter, Ct));
     }
 
-    private static ScriptMailSender Sender(Func<HttpRequestMessage, Task<HttpResponseMessage>> relay) => new(
+    private static ScriptMailSender Sender(Func<HttpRequestMessage, Task<HttpResponseMessage>> relay, MailQuota? quota = null) => new(
         new HttpClient(new Relay(relay)),
         Options.Create(new MailOptions { ScriptUrl = "https://script.example/exec", Key = "relay-key" }),
+        quota ?? new MailQuota(),
         NullLogger<ScriptMailSender>.Instance);
 
     private static HttpResponseMessage Answer(HttpStatusCode status, string body) =>
@@ -110,5 +122,32 @@ public class ScriptMailSenderTests
     private sealed class Relay(Func<HttpRequestMessage, Task<HttpResponseMessage>> answer) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => answer(request);
+    }
+}
+
+// Notices stop while the relay is close to the day's limit, so confirmations and password resets still go out.
+public class MailDeliveryTests
+{
+    private static readonly Mail Notice = new("draw", "ani@example.com", "Subject", "Body");
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    [Fact]
+    public async Task Notices_wait_out_a_low_quota_for_an_hour()
+    {
+        var mailbox = new TestMailbox();
+        var quota = new MailQuota();
+        var scopes = new ServiceCollection().AddSingleton<IMailSender>(mailbox).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+        var delivery = new MailDelivery(new MailQueue(), quota, scopes, NullLogger<MailDelivery>.Instance);
+
+        Assert.True(await delivery.DeliverAsync(Notice, Ct));
+        quota.Report(MailQuota.Reserve - 1, DateTime.UtcNow);
+        Assert.False(await delivery.DeliverAsync(Notice, Ct));
+        quota.Report(MailQuota.Reserve, DateTime.UtcNow);
+        Assert.True(await delivery.DeliverAsync(Notice, Ct));
+        // A low figure older than an hour no longer counts: the quota may have been renewed since.
+        quota.Report(0, DateTime.UtcNow.AddMinutes(-61));
+        Assert.True(await delivery.DeliverAsync(Notice, Ct));
+        Assert.Equal(3, mailbox.Sent.Count);
     }
 }

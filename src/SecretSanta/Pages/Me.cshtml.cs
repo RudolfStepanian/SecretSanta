@@ -11,7 +11,7 @@ public record ThreadView(List<Message> Messages, bool ViewerIsSanta, string Othe
 
 // The participant's own page in a game. It shows whoever is signed in to that game on this device;
 // anyone else is sent to the sign-in form on the invite page.
-public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender mailer, Text text) : PageModel
+public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text) : PageModel
 {
     // The outcomes of the e-mail form, passed back as ?mail=… so the page opens at the form after the post.
     private static readonly Dictionary<string, string> MailErrors = new()
@@ -22,7 +22,6 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender m
         ["failed"] = "MailFailed",
     };
 
-    public string VapidPublicKey => vapid.PublicKey;
     public bool MailEnabled => mailer.Enabled;
     public bool MailPending => Me.PendingEmail is not null && Me.EmailSentAt > DateTime.UtcNow - MailLinks.Life;
     public string? MailErrorKey { get; private set; }
@@ -46,6 +45,11 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender m
     public async Task<IActionResult> OnGetAsync(string invite, bool @new = false, bool saved = false, bool password = false, string? mail = null)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
+
+        // The next message is mailed again (Notifier), in the language of this visit.
+        Me.SeenAt = DateTime.UtcNow;
+        Me.Lang = text.Lang;
+        await db.SaveChangesAsync();
 
         IsNew = @new;
         IsSaved = saved;
@@ -151,53 +155,12 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender m
         return Redirect($"/play/{invite}#mail");
     }
 
-    // The page script sends this device's push endpoint along, so a signed-out device stops getting notifications.
-    public async Task<IActionResult> OnPostLogoutAsync(string invite, string? endpoint)
+    public async Task<IActionResult> OnPostLogoutAsync(string invite)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
 
-        if (endpoint is not null) await db.PushSubscriptions.Where(s => s.ParticipantId == Me.Id && s.Endpoint == endpoint).ExecuteDeleteAsync();
         ParticipantCookie.Clear(Response, Me.GameId);
         return Redirect($"/join/{invite}");
-    }
-
-    // The browser on this device asks for notifications. The same browser subscribing again (or after someone else
-    // signed in on it) replaces its old entry.
-    public async Task<IActionResult> OnPostSubscribeAsync(string invite, string? endpoint, string? p256dh, string? auth)
-    {
-        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-        if (!WebPush.IsPushEndpoint(endpoint) || WebPush.ReadKeys(p256dh, auth) is null) return BadRequest();
-
-        var subscription = await db.PushSubscriptions.SingleOrDefaultAsync(s => s.Endpoint == endpoint);
-        if (subscription is null)
-        {
-            subscription = new PushSubscription { Endpoint = endpoint!, CreatedAt = DateTime.UtcNow };
-            db.PushSubscriptions.Add(subscription);
-        }
-        subscription.ParticipantId = Me.Id;
-        subscription.P256dh = p256dh!;
-        subscription.Auth = auth!;
-        subscription.Lang = HttpContext.Items[Languages.ItemKey] as string ?? Languages.Default;
-        await db.SaveChangesAsync();
-        return new NoContentResult();
-    }
-
-    public async Task<IActionResult> OnPostUnsubscribeAsync(string invite, string? endpoint)
-    {
-        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-
-        await db.PushSubscriptions.Where(s => s.ParticipantId == Me.Id && s.Endpoint == endpoint).ExecuteDeleteAsync();
-        return new NoContentResult();
-    }
-
-    public async Task<IActionResult> OnPostTestPushAsync(string invite, string? endpoint)
-    {
-        if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-
-        var subscription = await db.PushSubscriptions.SingleOrDefaultAsync(s => s.ParticipantId == Me.Id && s.Endpoint == endpoint);
-        if (subscription is null) return NotFound();
-        notifier.Enqueue(subscription, "PushTest", Request, $"/play/{invite}");
-        return new NoContentResult();
     }
 
     public async Task<IActionResult> OnPostRevealAsync(string invite)
@@ -243,7 +206,7 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender m
             db.Messages.Add(new Message { ParticipantId = recipientId, FromSanta = true, Text = clean, CreatedAt = DateTime.UtcNow });
             Me.RevealedAt ??= DateTime.UtcNow;
             await db.SaveChangesAsync();
-            await notifier.NotifyAsync([recipientId], "SantaWrote", Request, $"/play/{invite}#santa");
+            await notifier.MessageAsync(Me.Game, Me.Game.Participants.Single(p => p.Id == recipientId), fromSanta: true, Request);
         }
         return Redirect($"/play/{invite}#ask");
     }
@@ -258,8 +221,8 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender m
         {
             db.Messages.Add(new Message { ParticipantId = Me.Id, FromSanta = false, Text = clean, CreatedAt = DateTime.UtcNow });
             await db.SaveChangesAsync();
-            var santa = Me.Game.Participants.Where(p => p.RecipientId == Me.Id).Select(p => p.Id).ToList();
-            await notifier.NotifyAsync(santa, "RecipientReplied", Request, $"/play/{invite}#ask");
+            if (Me.Game.Participants.FirstOrDefault(p => p.RecipientId == Me.Id) is { } santa)
+                await notifier.MessageAsync(Me.Game, santa, fromSanta: false, Request);
         }
         return Redirect($"/play/{invite}#santa");
     }

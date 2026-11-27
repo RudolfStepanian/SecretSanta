@@ -41,21 +41,6 @@ namespace SecretSanta.Data.Migrations
                     b.ToTable("DataProtectionKeys");
                 });
 
-            modelBuilder.Entity("SecretSanta.Data.AppSetting", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("Settings");
-                });
-
             modelBuilder.Entity("SecretSanta.Data.Exclusion", b =>
                 {
                     b.Property<int>("Id")
@@ -184,12 +169,19 @@ namespace SecretSanta.Data.Migrations
                     b.Property<DateTime?>("GiftReadyAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Lang")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
                     b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Login")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("MessageMailAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -228,6 +220,9 @@ namespace SecretSanta.Data.Migrations
                     b.Property<DateTime?>("RevealedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("SeenAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasColumnType("text");
@@ -253,50 +248,6 @@ namespace SecretSanta.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Participants");
-                });
-
-            modelBuilder.Entity("SecretSanta.Data.PushSubscription", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Auth")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Endpoint")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<string>("Lang")
-                        .IsRequired()
-                        .HasMaxLength(5)
-                        .HasColumnType("character varying(5)");
-
-                    b.Property<string>("P256dh")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("ParticipantId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Endpoint")
-                        .IsUnique();
-
-                    b.HasIndex("ParticipantId");
-
-                    b.ToTable("PushSubscriptions");
                 });
 
             modelBuilder.Entity("SecretSanta.Data.Exclusion", b =>
@@ -347,17 +298,6 @@ namespace SecretSanta.Data.Migrations
                     b.Navigation("Game");
 
                     b.Navigation("Recipient");
-                });
-
-            modelBuilder.Entity("SecretSanta.Data.PushSubscription", b =>
-                {
-                    b.HasOne("SecretSanta.Data.Participant", "Participant")
-                        .WithMany()
-                        .HasForeignKey("ParticipantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Participant");
                 });
 
             modelBuilder.Entity("SecretSanta.Data.Game", b =>

@@ -40,6 +40,12 @@ public class Participant
     public string? PendingEmail { get; set; }
     public string? EmailToken { get; set; }
     public DateTime? EmailSentAt { get; set; }
+    // The language the participant last opened their page in: e-mails to them are written in it.
+    public string? Lang { get; set; }
+    // When the participant last opened their page, and when the last e-mail about new messages went to them: the next
+    // message is mailed only if the page was opened since.
+    public DateTime? SeenAt { get; set; }
+    public DateTime? MessageMailAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public int? RecipientId { get; set; }
     public Participant? Recipient { get; set; }
@@ -65,25 +71,4 @@ public class Exclusion
     public int GameId { get; set; }
     public int FirstId { get; set; }
     public int SecondId { get; set; }
-}
-
-// One browser that asked for push notifications for a participant; a participant can have several devices.
-// Lang is the page language at the moment of subscribing, so notifications come in that language.
-public class PushSubscription
-{
-    public int Id { get; set; }
-    public int ParticipantId { get; set; }
-    public Participant Participant { get; set; } = null!;
-    public string Endpoint { get; set; } = "";
-    public string P256dh { get; set; } = "";
-    public string Auth { get; set; } = "";
-    public string Lang { get; set; } = "";
-    public DateTime CreatedAt { get; set; }
-}
-
-// Values the app creates for itself, such as the VAPID key pair for push notifications.
-public class AppSetting
-{
-    public string Key { get; set; } = "";
-    public string Value { get; set; } = "";
 }

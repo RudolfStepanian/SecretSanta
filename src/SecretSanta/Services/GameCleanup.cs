@@ -3,8 +3,8 @@ using SecretSanta.Data;
 
 namespace SecretSanta.Services;
 
-// A game is deleted with everything in it: participants, exclusions, messages and push subscriptions all cascade from
-// the game row in the database. The organizer can delete it at any time; otherwise it goes DaysAfterDraw days after
+// A game is deleted with everything in it: participants, exclusions and messages all cascade from the game row in the
+// database. The organizer can delete it at any time; otherwise it goes DaysAfterDraw days after
 // the draw, or DaysWithoutDraw days after it was created when there was no draw.
 public static class GameCleanup
 {

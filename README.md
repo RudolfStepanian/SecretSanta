@@ -1,6 +1,6 @@
 # Secret Santa
 
-A small Secret Santa site for a team. Colleagues sign up inside a game with a login and a password, and the organizer manages the game through a secret link. An e-mail address is optional: a participant can link one to reset a forgotten password.
+A small Secret Santa site for a team. Colleagues sign up inside a game with a login and a password, and the organizer manages the game through a secret link. An e-mail address is optional: a participant can link one to get e-mails about the draw and new messages and to reset a forgotten password.
 
 ## How it works
 
@@ -32,23 +32,15 @@ Rules:
 - Form posts are rate-limited per IP and kind of action (`Services/RateLimits.cs`), generously enough for a whole office behind one IP; a game takes at most 200 participants. Pages send a Content-Security-Policy that allows only this site (plus `data:` images) and `X-Content-Type-Options: nosniff`.
 - UI languages: Armenian (default), Russian, English (`?lang=hy|ru|en`, remembered in a cookie).
 
-## Notifications
-
-Participants can turn on browser push notifications on their own page. A notification arrives when the organizer runs the draw or cancels it, when a participant's Secret Santa asks them something, and when their recipient replies. The texts name nobody, and the organizer panel shows who has notifications on.
-
-- Web Push is implemented with the platform's own crypto (`Services/WebPush.cs`: RFC 8291 encryption, RFC 8292 VAPID); the tests check the encryption against the RFC 8291 example. The VAPID key pair is created on the first start and kept in the database (`Settings`), so subscriptions survive restarts and deploys.
-- Messages are sent in the background (`PushQueue`, `PushDelivery`); a subscription the push service reports as gone is deleted. Only the browsers' push services (Google, Mozilla, Microsoft, Apple) are accepted as endpoints.
-- On an iPhone, web push works only for a site added to the Home Screen (iOS 16.4 or later); the page explains this, and the site ships a web app manifest and icons for it.
-- Signing out on a device turns its notifications off.
-
 ## E-mail
 
-A participant can link an e-mail address on their own page and reset a forgotten password through it ("Forgot your password?" under the sign-in form). Nothing else is mailed, and only the participant sees the address.
+A participant can link an e-mail address on their own page. The site mails it when the organizer runs or cancels the draw and when the participant's Secret Santa or recipient writes to them, and a forgotten password can be reset through it ("Forgot your password?" under the sign-in form). Only the participant sees the address; the organizer panel only marks who has none.
 
 - Linking: the page mails a confirmation link (`/mail/{token}`); the address counts once the button behind that link is pressed. Until then an address linked before stays.
+- Notices name nobody and are written in the language the participant last opened their page in. About messages there is one e-mail, then none until the participant opens their page again, so a run of messages makes one e-mail. Notices are sent in the background (`Services/Notices.cs`); one that fails is dropped.
 - Forgot your password: the participant types their login and gets a one-time link (`/me/{token}`, the same kind the organizer hands out) at the linked address. Asking changes nothing else, so the old password works until the link is used. The answer is the same whether or not the login exists or has an address.
 - Links from e-mails work for a day, and a participant gets at most one e-mail of each kind per five minutes. A mailed reset is not counted as an organizer reset and doesn't close the card. Unlinking the address also stops a reset link already mailed to it.
-- Mail goes through a small Google Apps Script in a Gmail account made for the site (`tools/mail-relay.gs`): the site posts each e-mail to it over HTTPS, because a free Render instance can't open SMTP connections, and the mail comes from a real Gmail address, so it passes spam checks without a domain of our own. Gmail lets such a script mail 100 recipients a day.
+- Mail goes through a small Google Apps Script in a Gmail account made for the site (`tools/mail-relay.gs`): the site posts each e-mail to it over HTTPS, because a free Render instance can't open SMTP connections, and the mail comes from a real Gmail address, so it passes spam checks without a domain of our own. Gmail lets such a script mail 100 recipients a day. The relay reports how many are left after each e-mail; while fewer than 20 are, notices are skipped, so confirmations and password resets still go out.
 - Without a relay the site offers no e-mail at all and works as before. In Development without a relay, e-mails are written to the log instead.
 
 Setting up the relay:

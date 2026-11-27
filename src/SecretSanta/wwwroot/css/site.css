@@ -343,7 +343,6 @@ input:focus, textarea:focus, select:focus { outline: 3px solid rgba(230, 184, 74
 /* Login and sign-out under the participant's own page */
 .signed-in { align-items: center; color: var(--cream); font-size: 0.9rem; }
 
-.notify-status { margin: 10px 0 0; font-weight: 600; color: var(--green-dark); }
 
 /* Face-down cards: one click flips the chosen card, the rest fade */
 .deck {
