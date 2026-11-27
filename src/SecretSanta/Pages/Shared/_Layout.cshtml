@@ -20,9 +20,7 @@
         }
     </div>
     <header class="top">
-        @* The logo leads home: on a game's pages to the participant's page (or the sign-in page it sends a stranger to),
-           in the organizer panel to the panel, elsewhere to the page for a new game. *@
-        <a class="logo" href="@(ViewData["Home"] as string ?? "/")">Secret <span>Santa</span></a>
+        <span class="logo">Secret <span>Santa</span></span>
         <nav class="langs" aria-label="Language">
             @foreach (var lang in Languages.Menu)
             {

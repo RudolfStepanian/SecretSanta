@@ -123,10 +123,8 @@ public sealed class PageTests(SantaApp app) : IClassFixture<SantaApp>
         var page = await game.People["Hayk"].PageAsync($"/play/{game.Invite}");
         Assert.Contains("20000 AMD", page);
         Assert.Contains("Moved to Friday", page);
-        // The logo leads back into the game, not to the page for a new one.
-        Assert.Contains($"class=\"logo\" href=\"/play/{game.Invite}\"", page);
-        Assert.Contains($"class=\"logo\" href=\"{game.Admin}\"", await game.Organizer.PageAsync(game.Admin));
-        Assert.Contains("class=\"logo\" href=\"/\"", await game.Organizer.PageAsync("/"));
+        // The logo is not a link: it used to take participants to the page for a new game.
+        Assert.Contains("<span class=\"logo\">", page);
     }
 
     [Fact]

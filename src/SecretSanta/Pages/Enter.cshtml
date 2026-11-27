@@ -4,7 +4,6 @@
     var title = Model.UsedAt is not null ? T["ResetUsedTitle"] : Model.Expired ? T["ResetExpiredTitle"] : T["ResetEnterTitle"];
     ViewData["Title"] = title;
     var home = $"/play/{Model.Invite}";
-    ViewData["Home"] = home;
 }
 
 <section class="card waiting">

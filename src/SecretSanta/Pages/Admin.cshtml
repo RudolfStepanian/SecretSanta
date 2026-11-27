@@ -2,7 +2,6 @@
 @model AdminModel
 @{
     ViewData["Title"] = T["AdminTitle"];
-    ViewData["Home"] = $"/admin/{Model.Game.AdminToken}";
     var drawn = Model.Game.DrawnAt is not null;
 }
 
