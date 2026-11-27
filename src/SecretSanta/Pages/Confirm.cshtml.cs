@@ -27,8 +27,6 @@ public class ConfirmModel(AppDb db) : PageModel
         Taken = Signups.Taken(person.Game, person.PendingEmail!, except: person.Id);
         if (Taken) return Page();
 
-        // Whoever signs in with their address keeps signing in with it: the login follows the new address.
-        if (person.Login == person.Email) person.Login = person.PendingEmail;
         person.Email = person.PendingEmail;
         person.PendingEmail = null;
         person.EmailToken = null;

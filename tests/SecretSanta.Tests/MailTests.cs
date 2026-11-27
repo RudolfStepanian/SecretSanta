@@ -20,6 +20,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var play = $"/play/{game.Invite}";
         var join = $"/join/{game.Invite}";
         var arsen = game.People["Arsen"];
+        await SignsInWithLoginAsync("Arsen");
         var before = await arsen.PageAsync(play);
         Assert.Contains("Linked address: arsen@example.com", before);
         Assert.Contains("Only you can see the address.", before);
@@ -49,9 +50,11 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(link)).StatusCode);
         Assert.DoesNotContain("@example.com", await game.Organizer.PageAsync(game.Admin));
 
-        // The old address was also the login, so the login moved to the new one.
+        // The linked address signs in too, the old one no longer does.
         Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "arsen.new@example.com", "secret-1")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await SignInAsync(join, "arsen@example.com", "secret-1")).StatusCode);
+        // Bella signs in with her address, which is linked already: her page has no card for it.
+        Assert.DoesNotContain("id=\"mail\"", await game.People["Bella"].PageAsync(play));
     }
 
     [Fact]
@@ -61,6 +64,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var game = await Games.NewAsync(app, ["Davit", "Eva", "Gohar"], draw: false);
         var play = $"/play/{game.Invite}";
         var davit = game.People["Davit"];
+        await SignsInWithLoginAsync("Davit");
         async Task<string> AskAsync(string address) =>
             (await davit.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = address })).Headers.Location!.OriginalString;
 
@@ -86,6 +90,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Hayk", "Inga", "Karine"], draw: false);
         var play = $"/play/{game.Invite}";
+        await SignsInWithLoginAsync("Hayk");
         await game.People["Hayk"].PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "hayk.new@example.com" });
         var link = app.Mailbox.LinkTo("hayk.new@example.com");
         await UpdateAsync("Hayk", p => p.EmailSentAt = DateTime.UtcNow.AddHours(-25));
@@ -152,6 +157,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var play = $"/play/{game.Invite}";
         var join = $"/join/{game.Invite}";
         var ovsanna = game.People["Ovsanna"];
+        await SignsInWithLoginAsync("Ovsanna");
 
         app.Mailbox.Fail = true;
         try
@@ -194,8 +200,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var play = $"/play/{game.Invite}";
         var join = $"/join/{game.Invite}";
         var sona = game.People["Sona"];
-        // Sona stands for someone who signed up with a login and linked an address later.
-        await UpdateAsync("Sona", p => p.Login = "sona");
+        await SignsInWithLoginAsync("Sona");
         Assert.Contains("Linked address: sona@example.com", await sona.PageAsync(play));
         await (await Browser.OpenAsync(app)).PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "sona" });
         var link = app.Mailbox.LinkTo("sona@example.com");
@@ -207,10 +212,10 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.DoesNotContain("Linked address", await sona.PageAsync(play));
         Assert.Equal(HttpStatusCode.NotFound, (await (await Browser.OpenAsync(app)).GetAsync(link)).StatusCode);
 
-        // An address that is also the login can only be replaced, not unlinked.
+        // An address that is also the login stays.
         var tigran = game.People["Tigran"];
         Assert.DoesNotContain("Unlink the address", await tigran.PageAsync(play));
-        await tigran.PostAsync(play, play + "?handler=MailRemove", []);
+        Assert.Equal(HttpStatusCode.NotFound, (await tigran.PostAsync(play, play + "?handler=MailRemove", [])).StatusCode);
         Assert.Equal("tigran@example.com", await EmailAsync("Tigran"));
     }
 
@@ -226,6 +231,9 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
         return await db.Participants.Where(p => p.Name == name).Select(p => p.Email).SingleAsync(Ct);
     }
+
+    // As if the participant had signed up with a login before addresses and linked their address later.
+    private Task SignsInWithLoginAsync(string name) => UpdateAsync(name, p => p.Login = name.ToLowerInvariant());
 
     private async Task UpdateAsync(string name, Action<Participant> change)
     {

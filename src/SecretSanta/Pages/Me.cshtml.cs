@@ -24,6 +24,8 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
     };
 
     public bool MailEnabled => mailer.Enabled;
+    // Whoever signed up with their address signs in with it: it is linked already and can't be changed or unlinked.
+    public bool SignsInWithEmail => Me.Email is not null && Me.Login == Me.Email;
     public bool MailPending => Me.PendingEmail is not null && Me.EmailSentAt > DateTime.UtcNow - MailLinks.Life;
     public string? MailErrorKey { get; private set; }
     [BindProperty] public string? Email { get; set; }
@@ -117,7 +119,7 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
     public async Task<IActionResult> OnPostMailAsync(string invite)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-        if (!mailer.Enabled) return NotFound();
+        if (!mailer.Enabled || SignsInWithEmail) return NotFound();
 
         var email = Emails.Normalize(Email);
         var now = DateTime.UtcNow;
@@ -144,12 +146,11 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
         return Redirect($"/play/{invite}?mail=failed#mail");
     }
 
-    // Unlinks the address. A reset link already mailed to it and not used yet stops working too. An address that is
-    // also the login stays: it can only be replaced.
+    // Unlinks the address. A reset link already mailed to it and not used yet stops working too.
     public async Task<IActionResult> OnPostMailRemoveAsync(string invite)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
-        if (Me.Login == Me.Email) return Redirect($"/play/{invite}#mail");
+        if (SignsInWithEmail) return NotFound();
 
         Me.Email = null;
         Me.PendingEmail = null;
