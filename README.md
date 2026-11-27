@@ -48,20 +48,16 @@ A participant can link an e-mail address on their own page and reset a forgotten
 - Linking: the page mails a confirmation link (`/mail/{token}`); the address counts once the button behind that link is pressed. Until then an address linked before stays.
 - Forgot your password: the participant types their login and gets a one-time link (`/me/{token}`, the same kind the organizer hands out) at the linked address. Asking changes nothing else, so the old password works until the link is used. The answer is the same whether or not the login exists or has an address.
 - Links from e-mails work for a day, and a participant gets at most one e-mail of each kind per five minutes. A mailed reset is not counted as an organizer reset and doesn't close the card. Unlinking the address also stops a reset link already mailed to it.
-- Firebase Authentication sends the mail, on the free Spark plan: no card, no mailbox of our own, and no SMTP, which a free Render instance can't use. The site calls Firebase's REST API (`Services/Mail.cs`). Signing in stays on this site; Firebase only delivers the link.
-- Firebase doesn't let this project change its e-mail texts or the page its links open ("Email template updates are currently unavailable for this project"). So every e-mail, the forgotten password one too, is Firebase's standard "verify your e-mail" e-mail: its link opens Firebase's page, which confirms the address and offers Continue to our link (Firebase's continue URL). Firebase's own password reset e-mail is not used, because its page would ask for a Firebase password. The participant's page and the "Forgot your password?" answer tell participants what to expect.
-- Firebase mails only addresses that have an account there, and only when asked with that account's ID token. So the address first gets a Firebase account (`accounts:signUp`, or `accounts:signInWithPassword` when it has one already), with a password made from the address and a key kept in the database (`FirebaseAccounts`); nobody types it.
-- The e-mail and Firebase's page come in the language of the page the participant asked on (`X-Firebase-Locale`), where Firebase has that language.
-- The free plan sends a limited number of such e-mails a day. Firebase sends them from its shared `noreply@<project>.firebaseapp.com` address, so they sometimes land in spam; the pages tell participants to look there.
-- Linked addresses stay as accounts in Firebase (Authentication → Users); delete them there if needed.
-- Without Firebase the site offers no e-mail at all and works as before. In Development without it, e-mails are written to the log instead.
+- Mail goes through a small Google Apps Script in a Gmail account made for the site (`tools/mail-relay.gs`): the site posts each e-mail to it over HTTPS, because a free Render instance can't open SMTP connections, and the mail comes from a real Gmail address, so it passes spam checks without a domain of our own. Gmail lets such a script mail 100 recipients a day.
+- Without a relay the site offers no e-mail at all and works as before. In Development without a relay, e-mails are written to the log instead.
 
-Setting up Firebase:
+Setting up the relay:
 
-1. In the [Firebase console](https://console.firebase.google.com) create a project. The Spark plan needs no card; Google Analytics can stay off.
-2. **Authentication → Get started → Sign-in method**: enable **Email/Password**.
-3. **Authentication → Settings → Authorized domains**: add the site's domain (`secretsanta-b49y.onrender.com`), so Firebase accepts our links as continue URLs.
-4. **Project settings → General**: set the public-facing name to `Secret Santa` (the e-mails name the app by it), copy the **Web API key** and set it on Render as `Firebase__ApiKey`. After the restart the startup log says `E-mail is on, through Firebase.`
+1. Create a Gmail account for the site.
+2. In it, open [script.google.com](https://script.google.com), create a project and paste `tools/mail-relay.gs` into it.
+3. Make a random key, for example in Git Bash with `openssl rand -hex 24`, and add it under **Project Settings → Script properties** as `KEY`.
+4. **Deploy → New deployment → Web app**, with *Execute as: Me* and *Who has access: Anyone*. Allow the script to send e-mail as you when Google asks, and copy the web app URL.
+5. On Render, set `Mail__ScriptUrl` to that URL and `Mail__Key` to the same key. After the restart the startup log says `E-mail is on, through the relay.`
 
 ## Stack
 
@@ -75,7 +71,7 @@ The free Render instance has 0.1 CPU, so startup is mostly CPU time, not the dat
 
 `GET /healthz` (and `HEAD`) answers `200 ok` without touching the database and with `Cache-Control: no-store`.
 
-The only required setting is the database: `DATABASE_URL` (`postgres://user:password@host:port/db?sslmode=require`) or `ConnectionStrings:Default` (Npgsql format). E-mail is optional: `Firebase__ApiKey` (see [E-mail](#e-mail)).
+The only required setting is the database: `DATABASE_URL` (`postgres://user:password@host:port/db?sslmode=require`) or `ConnectionStrings:Default` (Npgsql format). E-mail is optional: `Mail__ScriptUrl` and `Mail__Key` (see [E-mail](#e-mail)).
 
 ## Run locally
 

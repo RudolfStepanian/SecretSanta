@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using SecretSanta.Data;
+using SecretSanta.Localization;
 using SecretSanta.Services;
 
 namespace SecretSanta.Pages;
 
 // The invite link: a sign-in page with a sign-up tab (?mode=register) while the draw hasn't happened yet.
-public class JoinModel(AppDb db, IMailSender mailer) : PageModel
+public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
 {
     public Game Game { get; private set; } = null!;
     public Participant? Existing { get; private set; }
@@ -117,7 +118,8 @@ public class JoinModel(AppDb db, IMailSender mailer) : PageModel
             person.ResetUsedAt = null;
             person.ResetSentAt = now;
             await db.SaveChangesAsync();
-            if (!await mailer.SendAsync(new Mail("reset", email, Request.Abs($"/me/{person.ResetToken}")), HttpContext.RequestAborted))
+            var link = Request.Abs($"/me/{person.ResetToken}");
+            if (!await mailer.SendAsync(new Mail("reset", email, text["MailResetSubject"], text.F("MailResetBody", person.Name, link)), HttpContext.RequestAborted))
             {
                 // Nothing went out: the earlier link, if any, keeps working and the participant can ask again right away.
                 (person.ResetToken, person.ResetUsedAt, person.ResetSentAt) = (oldToken, oldUsedAt, oldSentAt);

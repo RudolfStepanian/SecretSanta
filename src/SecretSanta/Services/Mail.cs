@@ -1,17 +1,12 @@
-using System.Buffers.Text;
 using System.Net.Mail;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using SecretSanta.Data;
-using SecretSanta.Localization;
 
 namespace SecretSanta.Services;
 
-// One e-mail with a link to this site: Kind "confirm" links an address, "reset" sets a new password.
-// The log gets the kind, never the address.
-public sealed record Mail(string Kind, string To, string Link);
+// One plain-text e-mail. The log gets its kind ("confirm" or "reset"), never the address.
+public sealed record Mail(string Kind, string To, string Subject, string Body);
 
 public interface IMailSender
 {
@@ -22,12 +17,14 @@ public interface IMailSender
     Task<bool> SendAsync(Mail mail, CancellationToken ct);
 }
 
-// Firebase:ApiKey (Firebase__ApiKey in the environment): the Web API key of the Firebase project that sends the mail.
-public sealed class FirebaseOptions
+// Mail:ScriptUrl and Mail:Key (Mail__ScriptUrl and Mail__Key in the environment): the relay's web app URL and the key
+// it checks.
+public sealed class MailOptions
 {
-    public string? ApiKey { get; set; }
+    public string? ScriptUrl { get; set; }
+    public string? Key { get; set; }
 
-    public bool Configured => !string.IsNullOrWhiteSpace(ApiKey);
+    public bool Configured => !string.IsNullOrWhiteSpace(ScriptUrl) && !string.IsNullOrWhiteSpace(Key);
 }
 
 // A link sent by e-mail works for a day, and a participant gets at most one e-mail of each kind per five minutes,
@@ -38,104 +35,62 @@ public static class MailLinks
     public static readonly TimeSpan Pause = TimeSpan.FromMinutes(5);
 }
 
-// Turns an address into the password of its Firebase account, so the site can sign in to that account again whenever
-// Firebase is to mail it. The key is created on the first use and kept in the database, like the VAPID keys.
-public sealed class FirebaseAccounts(byte[] key)
+// Sends through the Apps Script web app of the site's own Gmail account (tools/mail-relay.gs): an HTTPS post, because
+// a free Render instance can't open SMTP connections. Gmail lets such a script mail 100 recipients a day.
+public sealed class ScriptMailSender(HttpClient http, IOptions<MailOptions> options, ILogger<ScriptMailSender> logger) : IMailSender
 {
-    private const string Name = "FirebaseAccountKey";
-
-    public static FirebaseAccounts LoadOrCreate(AppDb db)
-    {
-        var saved = db.Settings.SingleOrDefault(s => s.Key == Name);
-        if (saved is not null) return new FirebaseAccounts(Base64Url.DecodeFromChars(saved.Value));
-
-        var key = RandomNumberGenerator.GetBytes(32);
-        db.Settings.Add(new AppSetting { Key = Name, Value = Base64Url.EncodeToString(key) });
-        db.SaveChanges();
-        return new FirebaseAccounts(key);
-    }
-
-    public string PasswordFor(string email) => Base64Url.EncodeToString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(email)));
-}
-
-// Firebase Authentication sends the mail, free and without a mailbox of our own. Its e-mail texts and the page its links
-// open can't be changed for this project, so every e-mail is Firebase's standard "verify your e-mail address" one: the
-// link opens Firebase's page, which confirms the address and offers Continue to our link (the continue URL). That
-// e-mail asks for no password, unlike Firebase's own password reset.
-// Firebase mails only addresses that have an account, and only when asked with that account's ID token, so the address
-// gets an account first, with a password made by FirebaseAccounts that nobody types: signing in stays on this site.
-public sealed class FirebaseMailSender(HttpClient http, IOptions<FirebaseOptions> options, FirebaseAccounts accounts, IHttpContextAccessor context, ILogger<FirebaseMailSender> logger) : IMailSender
-{
-    private const string Accounts = "https://identitytoolkit.googleapis.com/v1/accounts";
-
     public bool Enabled => true;
 
     public async Task<bool> SendAsync(Mail mail, CancellationToken ct)
     {
-        var key = Uri.EscapeDataString(options.Value.ApiKey!);
-        var account = new { email = mail.To, password = accounts.PasswordFor(mail.To), returnSecureToken = true };
+        var settings = options.Value;
         try
         {
-            var (idToken, error) = await PostAsync($"{Accounts}:signUp?key={key}", account, null, ct);
-            if (error == "EMAIL_EXISTS") (idToken, error) = await PostAsync($"{Accounts}:signInWithPassword?key={key}", account, null, ct);
-            if (idToken is null)
+            // The web app answers with a redirect to its result, which the client follows.
+            using var response = await http.PostAsJsonAsync(settings.ScriptUrl, new { key = settings.Key, to = mail.To, subject = mail.Subject, body = mail.Body }, ct);
+            var reply = Read(await response.Content.ReadAsStringAsync(ct));
+            if (response.IsSuccessStatusCode && reply is { Ok: true })
             {
-                logger.LogWarning("E-mail {Kind} not sent: no Firebase account for the address, {Error}.", mail.Kind, error ?? "no ID token");
-                return false;
-            }
-
-            // Firebase's e-mail and its page in the language of the page the participant asked on.
-            var locale = context.HttpContext?.Items[Languages.ItemKey] as string;
-            var (_, sent) = await PostAsync($"{Accounts}:sendOobCode?key={key}", new { requestType = "VERIFY_EMAIL", idToken, continueUrl = mail.Link }, locale, ct);
-            if (sent is null)
-            {
-                logger.LogInformation("E-mail {Kind} sent through Firebase.", mail.Kind);
+                logger.LogInformation("E-mail {Kind} sent; the relay can send {Left} more today.", mail.Kind, reply.Left);
                 return true;
             }
-            logger.LogWarning("E-mail {Kind} not sent: Firebase answered {Error}.", mail.Kind, sent);
+            logger.LogWarning("E-mail {Kind} not sent: the relay answered {Status}, {Error}.", mail.Kind, (int)response.StatusCode, reply?.Error ?? "not with a result");
         }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
         {
-            logger.LogWarning(e, "E-mail {Kind} not sent: Firebase did not answer.", mail.Kind);
+            logger.LogWarning(e, "E-mail {Kind} not sent: the relay did not answer.", mail.Kind);
         }
         return false;
     }
 
-    // Firebase's answer: the ID token it returned, if any, or the code of its error, such as EMAIL_EXISTS.
-    private async Task<(string? IdToken, string? Error)> PostAsync(string url, object body, string? locale, CancellationToken ct)
+    private static RelayReply? Read(string text)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
-        if (locale is not null) request.Headers.Add("X-Firebase-Locale", locale);
-        using var response = await http.SendAsync(request, ct);
-        var text = await response.Content.ReadAsStringAsync(ct);
         try
         {
-            using var reply = JsonDocument.Parse(text);
-            if (response.IsSuccessStatusCode)
-                return (reply.RootElement.TryGetProperty("idToken", out var token) ? token.GetString() : null, null);
-            var message = reply.RootElement.GetProperty("error").GetProperty("message").GetString() ?? "";
-            return (null, message.Split(" : ")[0]);
+            return JsonSerializer.Deserialize<RelayReply>(text, JsonSerializerOptions.Web);
         }
-        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
+        catch (JsonException)
         {
-            return (null, response.IsSuccessStatusCode ? null : $"HTTP {(int)response.StatusCode}");
+            return null;
         }
     }
+
+    private sealed record RelayReply(bool Ok, string? Error, int? Left);
 }
 
-// Development without Firebase: mail goes to the log, so its links can be followed by hand.
+// Development without a relay: mail goes to the log, so its links can be followed by hand.
 public sealed class LogMailSender(ILogger<LogMailSender> logger) : IMailSender
 {
     public bool Enabled => true;
 
     public Task<bool> SendAsync(Mail mail, CancellationToken ct)
     {
-        logger.LogInformation("E-mail {Kind} to {To}: {Link}", mail.Kind, mail.To, mail.Link);
+        logger.LogInformation("E-mail {Kind} to {To}: {Subject}\n{Body}", mail.Kind, mail.To, mail.Subject, mail.Body);
         return Task.FromResult(true);
     }
 }
 
-// Firebase not configured: the site works as before, without e-mail.
+// No relay configured: the site works as before, without e-mail.
 public sealed class NoMailSender : IMailSender
 {
     public bool Enabled => false;

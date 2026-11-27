@@ -86,8 +86,14 @@ public sealed class TestMailbox : IMailSender
         return Task.FromResult(true);
     }
 
-    // The path of the link in the last mail to the address.
-    public string LinkTo(string address) => new Uri(sent.Last(m => m.To == address).Link).AbsolutePath;
+    // The path of the first link to this site in the last mail to the address.
+    public string LinkTo(string address)
+    {
+        var mail = sent.Last(m => m.To == address);
+        var link = Regex.Match(mail.Body, @"https?://[^/\s]+(/[^\s]+)").Groups[1].Value;
+        Assert.NotEmpty(link);
+        return link;
+    }
 }
 
 // One visitor: keeps its cookies, does not follow redirects, and posts forms with the antiforgery token of the page.

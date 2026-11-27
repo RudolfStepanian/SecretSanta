@@ -24,19 +24,14 @@ builder.Services.AddSingleton<PushQueue>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddHostedService<PushDelivery>();
 builder.Services.AddHostedService<GameCleanupService>();
-// E-mail goes through Firebase once its API key is set; in Development without one, to the log; otherwise it is off.
-var firebase = builder.Configuration.GetSection("Firebase");
-builder.Services.Configure<FirebaseOptions>(firebase);
+// E-mail goes through the relay once it is configured; in Development without one, to the log; otherwise it is off.
+var mail = builder.Configuration.GetSection("Mail");
+builder.Services.Configure<MailOptions>(mail);
 string mailMode;
-if (firebase.Get<FirebaseOptions>() is { Configured: true })
+if (mail.Get<MailOptions>() is { Configured: true })
 {
-    builder.Services.AddSingleton(services =>
-    {
-        using var scope = services.CreateScope();
-        return FirebaseAccounts.LoadOrCreate(scope.ServiceProvider.GetRequiredService<AppDb>());
-    });
-    builder.Services.AddHttpClient<IMailSender, FirebaseMailSender>(c => c.Timeout = TimeSpan.FromSeconds(20));
-    mailMode = "on, through Firebase";
+    builder.Services.AddHttpClient<IMailSender, ScriptMailSender>(c => c.Timeout = TimeSpan.FromSeconds(20));
+    mailMode = "on, through the relay";
 }
 else if (builder.Environment.IsDevelopment())
 {
@@ -46,7 +41,7 @@ else if (builder.Environment.IsDevelopment())
 else
 {
     builder.Services.AddSingleton<IMailSender, NoMailSender>();
-    mailMode = "off: Firebase__ApiKey is not set";
+    mailMode = "off: Mail__ScriptUrl and Mail__Key are not set";
 }
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();

@@ -2,7 +2,6 @@ using System.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SecretSanta.Data;
-using SecretSanta.Services;
 
 namespace SecretSanta.Tests;
 
@@ -26,10 +25,11 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal($"{play}#mail", asked.Headers.Location!.OriginalString);
         var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "arsen@example.com");
         Assert.Equal("confirm", mail.Kind);
-        Assert.StartsWith("http://localhost/mail/", mail.Link);
+        Assert.Equal("Secret Santa: confirm your e-mail address", mail.Subject);
+        Assert.StartsWith("Hi Arsen,", mail.Body);
         var link = app.Mailbox.LinkTo("arsen@example.com");
         Assert.StartsWith("/mail/", link);
-        Assert.Contains("An e-mail went to arsen@example.com", await arsen.PageAsync(play));
+        Assert.Contains("A confirmation e-mail went to arsen@example.com", await arsen.PageAsync(play));
         Assert.Null(await EmailAsync("arsen"));
 
         // Opening the link, as a mail scanner would, links nothing; the button does, on any device.
@@ -41,7 +41,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal("arsen@example.com", await EmailAsync("arsen"));
         var page = await arsen.PageAsync(play);
         Assert.Contains("Linked address: arsen@example.com", page);
-        Assert.DoesNotContain("An e-mail went to", page);
+        Assert.DoesNotContain("A confirmation e-mail went to", page);
         Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(link)).StatusCode);
         Assert.DoesNotContain("arsen@example.com", await game.Organizer.PageAsync(game.Admin));
     }
@@ -85,7 +85,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var late = await phone.PostAsync("/", link, []);
         Assert.Contains("This link has expired", await late.Content.ReadAsStringAsync(Ct));
         Assert.Null(await EmailAsync("hayk"));
-        Assert.DoesNotContain("An e-mail went to", await game.People["Hayk"].PageAsync(play));
+        Assert.DoesNotContain("A confirmation e-mail went to", await game.People["Hayk"].PageAsync(play));
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         }
         Assert.Contains("If an e-mail address is linked to this login", await phone.PageAsync($"{join}?forgot=true"));
         var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "levon@example.com");
-        Assert.Equal("reset", mail.Kind);
+        Assert.Equal(("reset", "Secret Santa: a new password"), (mail.Kind, mail.Subject));
         var link = app.Mailbox.LinkTo("levon@example.com");
 
         // Asking changed nothing: the old password still signs in, and opening the link only shows the button.
@@ -150,7 +150,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         {
             app.Mailbox.Fail = false;
         }
-        Assert.DoesNotContain("An e-mail went to", await ovsanna.PageAsync(play));
+        Assert.DoesNotContain("A confirmation e-mail went to", await ovsanna.PageAsync(play));
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var petros = await scope.ServiceProvider.GetRequiredService<AppDb>().Participants.SingleAsync(p => p.Login == "petros", Ct);
@@ -184,20 +184,6 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Null(await EmailAsync("sona"));
         Assert.DoesNotContain("Linked address", await sona.PageAsync(play));
         Assert.Equal(HttpStatusCode.NotFound, (await (await Browser.OpenAsync(app)).GetAsync(link)).StatusCode);
-    }
-
-    // The key behind the Firebase account passwords survives restarts, or the site couldn't sign in to the accounts again.
-    [Fact]
-    public async Task The_Firebase_account_key_is_made_once_and_kept()
-    {
-        SantaApp.SkipWithoutDatabase();
-        await using var scope = app.Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-
-        var first = FirebaseAccounts.LoadOrCreate(db).PasswordFor("ani@example.com");
-
-        Assert.Equal(first, FirebaseAccounts.LoadOrCreate(db).PasswordFor("ani@example.com"));
-        Assert.Equal(1, await db.Settings.CountAsync(s => s.Key == "FirebaseAccountKey", Ct));
     }
 
     private async Task<HttpResponseMessage> SignInAsync(string join, string login, string password)

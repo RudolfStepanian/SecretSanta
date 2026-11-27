@@ -11,7 +11,7 @@ public record ThreadView(List<Message> Messages, bool ViewerIsSanta, string Othe
 
 // The participant's own page in a game. It shows whoever is signed in to that game on this device;
 // anyone else is sent to the sign-in form on the invite page.
-public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender mailer) : PageModel
+public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender mailer, Text text) : PageModel
 {
     // The outcomes of the e-mail form, passed back as ?mail=… so the page opens at the form after the post.
     private static readonly Dictionary<string, string> MailErrors = new()
@@ -126,7 +126,8 @@ public class MeModel(AppDb db, Notifier notifier, VapidKeys vapid, IMailSender m
         Me.EmailToken = Tokens.New();
         Me.EmailSentAt = now;
         await db.SaveChangesAsync();
-        if (await mailer.SendAsync(new Mail("confirm", email!, Request.Abs($"/mail/{Me.EmailToken}")), HttpContext.RequestAborted))
+        var link = Request.Abs($"/mail/{Me.EmailToken}");
+        if (await mailer.SendAsync(new Mail("confirm", email!, text["MailConfirmSubject"], text.F("MailConfirmBody", Me.Name, link)), HttpContext.RequestAborted))
             return Redirect($"/play/{invite}#mail");
 
         // Nothing went out, so nothing waits for confirmation, and the participant can try again right away.
