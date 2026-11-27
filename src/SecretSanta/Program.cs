@@ -24,14 +24,14 @@ builder.Services.AddSingleton<PushQueue>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddHostedService<PushDelivery>();
 builder.Services.AddHostedService<GameCleanupService>();
-// E-mail goes through the relay once it is configured; in Development without one, to the log; otherwise it is off.
-var mail = builder.Configuration.GetSection("Mail");
-builder.Services.Configure<MailOptions>(mail);
+// E-mail goes through Firebase once its API key is set; in Development without one, to the log; otherwise it is off.
+var firebase = builder.Configuration.GetSection("Firebase");
+builder.Services.Configure<FirebaseOptions>(firebase);
 string mailMode;
-if (mail.Get<MailOptions>() is { Configured: true })
+if (firebase.Get<FirebaseOptions>() is { Configured: true })
 {
-    builder.Services.AddHttpClient<IMailSender, ScriptMailSender>(c => c.Timeout = TimeSpan.FromSeconds(20));
-    mailMode = "on, through the relay";
+    builder.Services.AddHttpClient<IMailSender, FirebaseMailSender>(c => c.Timeout = TimeSpan.FromSeconds(20));
+    mailMode = "on, through Firebase";
 }
 else if (builder.Environment.IsDevelopment())
 {
@@ -41,7 +41,7 @@ else if (builder.Environment.IsDevelopment())
 else
 {
     builder.Services.AddSingleton<IMailSender, NoMailSender>();
-    mailMode = "off: Mail__ScriptUrl and Mail__Key are not set";
+    mailMode = "off: Firebase__ApiKey is not set";
 }
 builder.Services.AddScoped<Text>();
 builder.Services.AddRazorPages();
@@ -111,6 +111,11 @@ app.MapMethods("/healthz", [HttpMethods.Get, HttpMethods.Head], (HttpResponse re
     response.Headers.CacheControl = "no-store";
     return Results.Text("ok");
 }).ShortCircuit();
+
+// The link in a Firebase e-mail opens here (the action URL set in the Firebase console) and goes on to the page of ours
+// it carries as continueUrl.
+app.MapGet("/auth/action", (string? continueUrl) =>
+    MailLinks.PathOf(continueUrl) is { } path ? Results.Redirect(path) : Results.NotFound());
 
 app.MapRazorPages();
 

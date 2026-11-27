@@ -25,8 +25,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal($"{play}#mail", asked.Headers.Location!.OriginalString);
         var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "arsen@example.com");
         Assert.Equal("confirm", mail.Kind);
-        Assert.Equal("Secret Santa: confirm your e-mail address", mail.Subject);
-        Assert.StartsWith("Hi Arsen,", mail.Body);
+        Assert.StartsWith("http://localhost/mail/", mail.Link);
         var link = app.Mailbox.LinkTo("arsen@example.com");
         Assert.StartsWith("/mail/", link);
         Assert.Contains("A confirmation e-mail went to arsen@example.com", await arsen.PageAsync(play));
@@ -107,7 +106,7 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         }
         Assert.Contains("If an e-mail address is linked to this login", await phone.PageAsync($"{join}?forgot=true"));
         var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "levon@example.com");
-        Assert.Equal(("reset", "Secret Santa: a new password"), (mail.Kind, mail.Subject));
+        Assert.Equal("reset", mail.Kind);
         var link = app.Mailbox.LinkTo("levon@example.com");
 
         // Asking changed nothing: the old password still signs in, and opening the link only shows the button.
@@ -184,6 +183,28 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Null(await EmailAsync("sona"));
         Assert.DoesNotContain("Linked address", await sona.PageAsync(play));
         Assert.Equal(HttpStatusCode.NotFound, (await (await Browser.OpenAsync(app)).GetAsync(link)).StatusCode);
+    }
+
+    // The link in a Firebase e-mail: Firebase's action page on this site, with our link as continueUrl.
+    [Fact]
+    public async Task The_link_in_a_Firebase_email_goes_on_to_our_page_and_nowhere_else()
+    {
+        SantaApp.SkipWithoutDatabase();
+        var game = await Games.NewAsync(app, ["Zaven", "Shushan", "Tamar"], draw: false);
+        var play = $"/play/{game.Invite}";
+        await game.People["Zaven"].PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "zaven@example.com" });
+        var link = app.Mailbox.Sent.Last(m => m.To == "zaven@example.com").Link;
+        var phone = await Browser.OpenAsync(app);
+        string Action(string continueUrl) =>
+            $"/auth/action?mode=resetPassword&oobCode=firebase-code&apiKey=firebase-key&continueUrl={Uri.EscapeDataString(continueUrl)}&lang=en";
+
+        var opened = await phone.GetAsync(Action(link));
+
+        Assert.Equal(HttpStatusCode.Redirect, opened.StatusCode);
+        Assert.Equal(new Uri(link).AbsolutePath, opened.Headers.Location!.OriginalString);
+        Assert.Contains("Link zaven@example.com to", await phone.PageAsync(opened.Headers.Location.OriginalString));
+        Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(Action("http://localhost" + game.Admin))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync("/auth/action?mode=resetPassword&oobCode=firebase-code")).StatusCode);
     }
 
     private async Task<HttpResponseMessage> SignInAsync(string join, string login, string password)
