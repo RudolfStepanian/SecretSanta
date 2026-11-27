@@ -27,6 +27,9 @@ public static class Passwords
         person.LockedUntil = null;
     }
 
+    // For a sign-up that becomes a participant later; the hash doesn't depend on the participant.
+    public static string Hash(string password) => Hasher.HashPassword(new Participant(), password);
+
     public static LoginResult Check(Participant person, string password, DateTime now)
     {
         if (person.LockedUntil > now) return LoginResult.Locked;

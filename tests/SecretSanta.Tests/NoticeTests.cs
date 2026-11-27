@@ -17,8 +17,8 @@ public sealed class NoticeTests(SantaApp app) : IClassFixture<SantaApp>
     {
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Hasmik", "Karen", "Lusine"], draw: false);
-        await LinkAsync("hasmik", "hasmik@example.com", lang: "hy");
-        await LinkAsync("karen", "karen@example.com");
+        await UpdateAsync("Hasmik", p => p.Lang = "hy"); // as if she last opened her page in Armenian
+        await UpdateAsync("Lusine", p => p.Email = null);
         Drain();
 
         await PostAsync(game.Organizer, game.Admin, "Draw");
@@ -29,7 +29,7 @@ public sealed class NoticeTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal("draw", hasmik.Kind);
         Assert.Equal(Strings.Get("MailDrawSubject", "hy"), hasmik.Subject);
         Assert.StartsWith("Բարև ձեզ, Hasmik։", hasmik.Body);
-        // Karen hasn't opened her page yet, so her e-mail is in the organizer's language.
+        // Karen hasn't opened her page yet, so her e-mail is in the language she signed up in.
         var karen = mails.Single(m => m.To == "karen@example.com");
         Assert.Equal("Secret Santa: the draw is done", karen.Subject);
         Assert.StartsWith("Hi Karen,", karen.Body);
@@ -54,16 +54,14 @@ public sealed class NoticeTests(SantaApp app) : IClassFixture<SantaApp>
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Mariam", "Narek", "Ofelia"], draw: true);
         var play = $"/play/{game.Invite}";
-        var recipient = await RecipientOfAsync("mariam");
-        await LinkAsync("mariam", "mariam@example.com");
-        await LinkAsync(recipient.ToLowerInvariant(), "recipient@example.com");
+        var recipient = await RecipientOfAsync("Mariam");
         var mariam = game.People["Mariam"];
         var reader = game.People[recipient];
         Drain();
 
         await PostAsync(mariam, play, "Ask", "What would you like?");
         var asked = Assert.Single(Drain());
-        Assert.Equal(("message", "recipient@example.com", "Secret Santa: your Santa wrote to you"), (asked.Kind, asked.To, asked.Subject));
+        Assert.Equal(("message", Games.Address(recipient), "Secret Santa: your Santa wrote to you"), (asked.Kind, asked.To, asked.Subject));
         Assert.Contains($"/play/{game.Invite}#santa\n", asked.Body);
         Assert.DoesNotContain("Mariam", asked.Body);
 
@@ -72,7 +70,7 @@ public sealed class NoticeTests(SantaApp app) : IClassFixture<SantaApp>
 
         await reader.PageAsync(play);
         await PostAsync(mariam, play, "Ask", "Thanks!");
-        Assert.Equal("recipient@example.com", Assert.Single(Drain()).To);
+        Assert.Equal(Games.Address(recipient), Assert.Single(Drain()).To);
 
         await PostAsync(reader, play, "Answer", "A scarf, size M");
         var answered = Assert.Single(Drain());
@@ -88,20 +86,19 @@ public sealed class NoticeTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Equal(HttpStatusCode.Redirect, (await who.PostAsync(page, $"{page}?handler={handler}", fields)).StatusCode);
     }
 
-    private async Task LinkAsync(string login, string email, string? lang = null)
+    private async Task UpdateAsync(string name, Action<Participant> change)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        var updated = await db.Participants.Where(p => p.Login == login)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.Email, email).SetProperty(p => p.Lang, lang), Ct);
-        Assert.Equal(1, updated);
+        change(await db.Participants.SingleAsync(p => p.Name == name, Ct));
+        await db.SaveChangesAsync(Ct);
     }
 
-    private async Task<string> RecipientOfAsync(string login)
+    private async Task<string> RecipientOfAsync(string name)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        return await db.Participants.Where(p => p.Login == login).Select(p => p.Recipient!.Name).SingleAsync(Ct);
+        return await db.Participants.Where(p => p.Name == name).Select(p => p.Recipient!.Name).SingleAsync(Ct);
     }
 
     private List<Mail> Drain()

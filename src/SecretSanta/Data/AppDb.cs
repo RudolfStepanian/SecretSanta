@@ -9,6 +9,7 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
     public DbSet<Participant> Participants => Set<Participant>();
     public DbSet<Exclusion> Exclusions => Set<Exclusion>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Signup> Signups => Set<Signup>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -26,7 +27,7 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
         b.Entity<Participant>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(Limits.PersonName);
-            e.Property(x => x.Login).HasMaxLength(Limits.Login);
+            e.Property(x => x.Login).HasMaxLength(Limits.Email); // an e-mail address, or a login from before addresses
             e.HasIndex(x => new { x.GameId, x.Login }).IsUnique();
             e.Property(x => x.Wishlist).HasMaxLength(Limits.Wishlist);
             e.Property(x => x.NotWanted).HasMaxLength(Limits.NotWanted);
@@ -43,6 +44,18 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options), IDataP
         {
             e.Property(x => x.Text).HasMaxLength(Limits.Message);
             e.HasOne(x => x.Participant).WithMany().HasForeignKey(x => x.ParticipantId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Signup>(e =>
+        {
+            e.Property(x => x.Email).HasMaxLength(Limits.Email);
+            e.Property(x => x.Name).HasMaxLength(Limits.PersonName);
+            e.Property(x => x.Wishlist).HasMaxLength(Limits.Wishlist);
+            e.Property(x => x.NotWanted).HasMaxLength(Limits.NotWanted);
+            e.Property(x => x.Lang).HasMaxLength(8);
+            e.HasIndex(x => x.Token).IsUnique();
+            e.HasIndex(x => new { x.GameId, x.Email }).IsUnique();
+            e.HasOne(x => x.Game).WithMany().HasForeignKey(x => x.GameId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<Exclusion>(e =>

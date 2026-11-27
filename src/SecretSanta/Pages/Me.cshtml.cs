@@ -18,6 +18,7 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
     {
         ["invalid"] = "MailInvalid",
         ["same"] = "MailSame",
+        ["taken"] = "MailUsed",
         ["wait"] = "MailWait",
         ["failed"] = "MailFailed",
     };
@@ -122,6 +123,7 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
         var now = DateTime.UtcNow;
         var problem = email is null ? "invalid"
             : email == Me.Email ? "same"
+            : Signups.Taken(Me.Game, email, except: Me.Id) ? "taken"
             : Me.EmailSentAt > now - MailLinks.Pause ? "wait"
             : null;
         if (problem is not null) return Redirect($"/play/{invite}?mail={problem}#mail");
@@ -142,10 +144,12 @@ public class MeModel(AppDb db, IMailSender mailer, Notifier notifier, Text text)
         return Redirect($"/play/{invite}?mail=failed#mail");
     }
 
-    // Unlinks the address. A reset link already mailed to it and not used yet stops working too.
+    // Unlinks the address. A reset link already mailed to it and not used yet stops working too. An address that is
+    // also the login stays: it can only be replaced.
     public async Task<IActionResult> OnPostMailRemoveAsync(string invite)
     {
         if (await LoadAsync(invite) is { } elsewhere) return elsewhere;
+        if (Me.Login == Me.Email) return Redirect($"/play/{invite}#mail");
 
         Me.Email = null;
         Me.PendingEmail = null;

@@ -1,13 +1,13 @@
 # Secret Santa
 
-A small Secret Santa site for a team. Colleagues sign up inside a game with a login and a password, and the organizer manages the game through a secret link. An e-mail address is optional: a participant can link one to get e-mails about the draw and new messages and to reset a forgotten password.
+A small Secret Santa site for a team. Colleagues sign up inside a game with their e-mail address and a password and join once they open the link mailed to that address; the organizer manages the game through a secret link. The site mails participants about the draw and new messages and lets them reset a forgotten password.
 
 ## How it works
 
 1. The organizer creates a game (optional budget and note) and gets two links:
    - **organizer panel** (`/admin/{token}`): participants, exclusions, the draw;
    - **invite link** (`/join/{token}`): sent to colleagues.
-2. The invite link opens a sign-in page with a sign-up tab. Each colleague signs up with a login, a password, their name (what their Secret Santa sees) and a wishlist. Later they sign in there with the login and password, from any device, and land on their own page (`/play/{invite}`).
+2. The invite link opens a sign-in page with a sign-up tab. Each colleague signs up with their e-mail address, a password, their name (what their Secret Santa sees) and a wishlist, and joins by opening the link from the e-mail that follows (`/signup/{token}`, valid for a day; until then they are not in the game, not in the draw and can't sign in, and the organizer panel lists them as waiting). Later they sign in there with the address and password, from any device, and land on their own page (`/play/{invite}`).
 3. The organizer runs the draw. Everyone opens their page and sees who they give to, along with that person's wishlist.
 
 Rules:
@@ -19,7 +19,7 @@ Rules:
 - Nobody, the organizer included, can see the full list of pairs. Cancelling the draw resets them and reopens joining.
 - After the draw, participants and exclusions are locked.
 - Wishlists stay editable; the giver always sees the latest version.
-- A login is 3 to 32 Latin letters, digits, dots, hyphens or underscores, unique within a game and case-insensitive. Participants who joined before logins existed sign in with their name until they choose a login on their page.
+- An address belongs to one participant per game and is compared in lower case. Participants who signed up with a login before addresses keep signing in with it (3 to 32 Latin letters, digits, dots, hyphens or underscores) or with an address they linked; those who joined before logins existed sign in with their name until they choose a login on their page. Without a mail relay the address is taken as the login without confirmation.
 - Passwords are stored as salted PBKDF2 hashes (ASP.NET Core `PasswordHasher`). Five wrong passwords in a row lock the participant for 15 minutes.
 - A device stays signed in to a game (one cookie per game) until the participant signs out at the bottom of their page.
 - A forgotten password is reset from the organizer panel: the participant is signed out everywhere, and the organizer gets a one-time link (`/me/{token}`) to pass on, where the participant sets a new password. A participant with a linked e-mail address can also get such a link by mail (see [E-mail](#e-mail)). Opening the link only shows a button, because mail scanners and chat link previews open links too; the button signs the device in, signs every other device out and asks for a new password. The link works only once; opened again, it says when it was used, so a participant can tell that someone else used it first.
@@ -34,7 +34,7 @@ Rules:
 
 ## E-mail
 
-A participant can link an e-mail address on their own page. The site mails it when the organizer runs or cancels the draw and when the participant's Secret Santa or recipient writes to them, and a forgotten password can be reset through it ("Forgot your password?" under the sign-in form). Only the participant sees the address; the organizer panel only marks who has none.
+Everyone who signs up has an address; those who signed up with a login can link one on their own page. The site mails it when the organizer runs or cancels the draw and when the participant's Secret Santa or recipient writes to them, and a forgotten password can be reset through it ("Forgot your password?" under the sign-in form). Only the participant sees the address; the organizer panel only marks who has none.
 
 - Linking: the page mails a confirmation link (`/mail/{token}`); the address counts once the button behind that link is pressed. Until then an address linked before stays.
 - Notices name nobody and are written in the language the participant last opened their page in. About messages there is one e-mail, then none until the participant opens their page again, so a run of messages makes one e-mail. Notices are sent in the background (`Services/Notices.cs`); one that fails is dropped.

@@ -14,6 +14,7 @@ public class ConfirmModel(AppDb db) : PageModel
     public string Name { get; private set; } = "";
     public string Invite { get; private set; } = "";
     public bool Expired { get; private set; }
+    public bool Taken { get; private set; }
     public bool Done { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(string token) => await LoadAsync(token) is null ? NotFound() : Page();
@@ -23,7 +24,11 @@ public class ConfirmModel(AppDb db) : PageModel
         var person = await LoadAsync(token);
         if (person is null) return NotFound();
         if (Expired) return Page();
+        Taken = Signups.Taken(person.Game, person.PendingEmail!, except: person.Id);
+        if (Taken) return Page();
 
+        // Whoever signs in with their address keeps signing in with it: the login follows the new address.
+        if (person.Login == person.Email) person.Login = person.PendingEmail;
         person.Email = person.PendingEmail;
         person.PendingEmail = null;
         person.EmailToken = null;
@@ -34,7 +39,7 @@ public class ConfirmModel(AppDb db) : PageModel
 
     private async Task<Participant?> LoadAsync(string token)
     {
-        var person = await db.Participants.Include(p => p.Game).SingleOrDefaultAsync(p => p.EmailToken == token);
+        var person = await db.Participants.Include(p => p.Game).ThenInclude(g => g.Participants).SingleOrDefaultAsync(p => p.EmailToken == token);
         if (person?.PendingEmail is null) return null;
 
         Address = person.PendingEmail;

@@ -142,7 +142,7 @@ else
 
         <div class="actions">
             <button type="submit" class="btn green">@T["MailSend"]</button>
-            @if (Model.Me.Email is not null)
+            @if (Model.Me.Email is not null && Model.Me.Login != Model.Me.Email)
             {
                 <button type="submit" class="btn small secondary" asp-page-handler="MailRemove" formnovalidate>@T["MailRemove"]</button>
             }

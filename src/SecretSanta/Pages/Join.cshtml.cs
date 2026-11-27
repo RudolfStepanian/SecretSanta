@@ -16,11 +16,13 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
     public bool Full { get; private set; }
     public bool MailEnabled => mailer.Enabled;
     public bool ForgotSent { get; private set; }
-    public string? LoginErrorKey { get; private set; }
+    public string? EmailErrorKey { get; private set; }
     public string? PasswordErrorKey { get; private set; }
     public string? NameErrorKey { get; private set; }
     public string? SignInErrorKey { get; private set; }
-    [BindProperty] public string? Login { get; set; }
+    // The address the sign-up e-mail just went to, shown once after the redirect.
+    [TempData] public string? SignupSentTo { get; set; }
+    [BindProperty] public string? Email { get; set; }
     [BindProperty] public string? Password { get; set; }
     [BindProperty] public string? PasswordRepeat { get; set; }
     [BindProperty] public string? Name { get; set; }
@@ -38,6 +40,8 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
         return Page();
     }
 
+    // Signs the person up with their e-mail address as the login. With mail on, they join only through the link mailed
+    // to the address (Pages/Signup); without a relay nothing can confirm it, so they join right away.
     public async Task<IActionResult> OnPostAsync(string token)
     {
         if (!await LoadAsync(token)) return NotFound();
@@ -49,29 +53,57 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
             return Page();
         }
 
-        var login = Logins.Normalize(Login);
-        LoginErrorKey = login is null ? "LoginInvalid" : Game.Participants.Any(p => p.Login == login) ? "LoginTaken" : null;
+        var email = Emails.Normalize(Email);
+        EmailErrorKey = email is null ? "MailInvalid" : Signups.Taken(Game, email) ? "MailTaken" : null;
         PasswordErrorKey = Passwords.Problem(Password, PasswordRepeat);
         var name = Limits.Clean(Name, Limits.PersonName);
         NameErrorKey = name is null ? "Required" : Game.Participants.Any(p => SameName(p.Name, name)) ? "NameTaken" : null;
-        if (LoginErrorKey is not null || PasswordErrorKey is not null || NameErrorKey is not null) return Page();
+        if (EmailErrorKey is not null || PasswordErrorKey is not null || NameErrorKey is not null) return Page();
 
-        var person = new Participant
+        var signup = new Signup
         {
             GameId = Game.Id,
+            Email = email!,
             Name = name!,
-            Login = login,
+            PasswordHash = Passwords.Hash(Password!),
             Wishlist = Limits.Clean(Wishlist, Limits.Wishlist),
             NotWanted = Limits.Clean(NotWanted, Limits.NotWanted),
+            Lang = text.Lang,
             Token = Tokens.New(),
-            CreatedAt = DateTime.UtcNow,
+            SentAt = DateTime.UtcNow,
         };
-        Passwords.Set(person, Password!);
-        db.Participants.Add(person);
-        await db.SaveChangesAsync();
+        if (!mailer.Enabled)
+        {
+            var person = Signups.Admit(signup);
+            person.Email = null; // nothing confirmed it
+            db.Participants.Add(person);
+            await db.SaveChangesAsync();
+            ParticipantCookie.Set(Response, Game.Id, person.Token);
+            return Redirect($"/play/{Game.InviteToken}?new=true");
+        }
 
-        ParticipantCookie.Set(Response, Game.Id, person.Token);
-        return Redirect($"/play/{Game.InviteToken}?new=true");
+        // One sign-up per address and game: signing up again replaces it, at most once every few minutes.
+        var earlier = await db.Signups.Where(s => s.GameId == Game.Id && s.Email == email).Select(s => (DateTime?)s.SentAt).SingleOrDefaultAsync();
+        if (earlier > signup.SentAt - MailLinks.Pause)
+        {
+            EmailErrorKey = "MailWait";
+            return Page();
+        }
+        await db.Signups.Where(s => s.GameId == Game.Id && s.Email == email).ExecuteDeleteAsync();
+        db.Signups.Add(signup);
+        await db.SaveChangesAsync();
+        // The link carries the language of the sign-up, so its page opens in it on any device.
+        var link = Request.Abs($"/signup/{signup.Token}?lang={text.Lang}");
+        if (!await mailer.SendAsync(new Mail("signup", email!, text["MailConfirmSubject"], text.F("MailSignupBody", name!, link)), HttpContext.RequestAborted))
+        {
+            // Nothing went out, so nothing waits for confirmation, and the person can try again right away.
+            db.Signups.Remove(signup);
+            await db.SaveChangesAsync();
+            EmailErrorKey = "MailFailed";
+            return Page();
+        }
+        SignupSentTo = email;
+        return Redirect($"/join/{Game.InviteToken}?mode=register");
     }
 
     // Works before and after the draw. Participants who joined before logins existed sign in with their name
@@ -94,6 +126,9 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
                 LoginResult.NoPassword => "LoginNoPassword",
                 _ => "LoginFailed",
             };
+            if (person is null && Emails.Normalize(SignInLogin) is { } email
+                && await db.Signups.AnyAsync(s => s.GameId == Game.Id && s.Email == email))
+                SignInErrorKey = "SignupPending";
             return Page();
         }
 
@@ -129,13 +164,16 @@ public class JoinModel(AppDb db, IMailSender mailer, Text text) : PageModel
         return Redirect($"/join/{token}?forgot=true");
     }
 
-    // By login, or by name for those who joined before logins existed and haven't chosen one yet.
+    // By login (the e-mail address for everyone who signed up with one), by a linked address, or by name for those who
+    // joined before logins existed and haven't chosen one yet.
     private Participant? Find(string? typed)
     {
-        var clean = Limits.Clean(typed, Limits.PersonName);
+        var clean = Limits.Clean(typed, Limits.Email);
         if (clean is null) return null;
         var login = clean.ToLowerInvariant();
+        var byAddress = Game.Participants.Where(p => p.Email == login).Take(2).ToList();
         return Game.Participants.FirstOrDefault(p => p.Login == login)
+            ?? (byAddress.Count == 1 ? byAddress[0] : null)
             ?? Game.Participants.FirstOrDefault(p => p.Login is null && SameName(p.Name, clean));
     }
 

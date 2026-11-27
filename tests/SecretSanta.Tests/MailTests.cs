@@ -7,48 +7,55 @@ using SecretSanta.Services;
 namespace SecretSanta.Tests;
 
 // Linking an address and resetting a forgotten password through it, on the real pages. Mail lands in app.Mailbox;
-// each test uses its own names, so it finds its own mail there.
+// each test uses its own names, so it finds its own mail there. Everyone signs up with name@example.com (Games).
 public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task An_address_is_linked_only_by_the_button_behind_its_confirmation_link()
+    public async Task A_new_address_is_linked_only_by_the_button_behind_its_confirmation_link()
     {
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Arsen", "Bella", "Gayane"], draw: false);
         var play = $"/play/{game.Invite}";
+        var join = $"/join/{game.Invite}";
         var arsen = game.People["Arsen"];
-        Assert.Contains("Only you can see the address.", await arsen.PageAsync(play));
+        var before = await arsen.PageAsync(play);
+        Assert.Contains("Linked address: arsen@example.com", before);
+        Assert.Contains("Only you can see the address.", before);
 
-        var asked = await arsen.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "  Arsen@Example.COM " });
+        var asked = await arsen.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "  Arsen.New@Example.COM " });
 
         Assert.Equal($"{play}#mail", asked.Headers.Location!.OriginalString);
-        var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "arsen@example.com");
+        var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "arsen.new@example.com");
         Assert.Equal("confirm", mail.Kind);
         Assert.Equal("Secret Santa: confirm your e-mail address", mail.Subject);
         Assert.StartsWith("Hi Arsen,", mail.Body);
-        var link = app.Mailbox.LinkTo("arsen@example.com");
+        var link = app.Mailbox.LinkTo("arsen.new@example.com");
         Assert.StartsWith("/mail/", link);
-        Assert.Contains("A confirmation e-mail went to arsen@example.com", await arsen.PageAsync(play));
-        Assert.Null(await EmailAsync("arsen"));
+        Assert.Contains("A confirmation e-mail went to arsen.new@example.com", await arsen.PageAsync(play));
+        Assert.Equal("arsen@example.com", await EmailAsync("Arsen"));
 
         // Opening the link, as a mail scanner would, links nothing; the button does, on any device.
         var phone = await Browser.OpenAsync(app);
-        Assert.Contains("Link arsen@example.com to &quot;Arsen&quot; in Secret Santa?", await phone.PageAsync(link));
-        Assert.Null(await EmailAsync("arsen"));
+        Assert.Contains("Link arsen.new@example.com to &quot;Arsen&quot; in Secret Santa?", await phone.PageAsync(link));
+        Assert.Equal("arsen@example.com", await EmailAsync("Arsen"));
         var confirmed = await phone.PostAsync(link, link, []);
-        Assert.Contains("Done: arsen@example.com is linked.", await confirmed.Content.ReadAsStringAsync(Ct));
-        Assert.Equal("arsen@example.com", await EmailAsync("arsen"));
+        Assert.Contains("Done: arsen.new@example.com is linked.", await confirmed.Content.ReadAsStringAsync(Ct));
+        Assert.Equal("arsen.new@example.com", await EmailAsync("Arsen"));
         var page = await arsen.PageAsync(play);
-        Assert.Contains("Linked address: arsen@example.com", page);
+        Assert.Contains("Linked address: arsen.new@example.com", page);
         Assert.DoesNotContain("A confirmation e-mail went to", page);
         Assert.Equal(HttpStatusCode.NotFound, (await phone.GetAsync(link)).StatusCode);
-        Assert.DoesNotContain("arsen@example.com", await game.Organizer.PageAsync(game.Admin));
+        Assert.DoesNotContain("@example.com", await game.Organizer.PageAsync(game.Admin));
+
+        // The old address was also the login, so the login moved to the new one.
+        Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "arsen.new@example.com", "secret-1")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await SignInAsync(join, "arsen@example.com", "secret-1")).StatusCode);
     }
 
     [Fact]
-    public async Task A_wrong_a_repeated_or_the_same_address_sends_nothing()
+    public async Task A_wrong_a_repeated_a_used_or_the_same_address_sends_nothing()
     {
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Davit", "Eva", "Gohar"], draw: false);
@@ -57,17 +64,20 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         async Task<string> AskAsync(string address) =>
             (await davit.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = address })).Headers.Location!.OriginalString;
 
-        Assert.Equal($"{play}?mail=invalid#mail", await AskAsync("davit@example"));
+        Assert.Equal($"{play}?mail=invalid#mail", await AskAsync("dk@example"));
         Assert.Contains("Please check the address", await davit.PageAsync($"{play}?mail=invalid"));
-        Assert.Equal($"{play}#mail", await AskAsync("davit@example.com"));
-        Assert.Equal($"{play}?mail=wait#mail", await AskAsync("davit@example.org"));
-        Assert.Contains("You can ask for a new one in a few minutes.", await davit.PageAsync($"{play}?mail=wait"));
-        Assert.Single(app.Mailbox.Sent, m => m.To.StartsWith("davit@", StringComparison.Ordinal));
-
-        var link = app.Mailbox.LinkTo("davit@example.com");
-        await davit.PostAsync(link, link, []);
         Assert.Equal($"{play}?mail=same#mail", await AskAsync("Davit@Example.com"));
-        Assert.Single(app.Mailbox.Sent, m => m.To.StartsWith("davit@", StringComparison.Ordinal));
+        Assert.Equal($"{play}?mail=taken#mail", await AskAsync("eva@example.com"));
+        Assert.Contains("This address already belongs to another participant in the game.", await davit.PageAsync($"{play}?mail=taken"));
+        Assert.Equal($"{play}#mail", await AskAsync("dk@example.com"));
+        Assert.Equal($"{play}?mail=wait#mail", await AskAsync("dk@example.org"));
+        Assert.Contains("You can ask for a new one in a few minutes.", await davit.PageAsync($"{play}?mail=wait"));
+        Assert.Single(app.Mailbox.Sent, m => m.To.StartsWith("dk@", StringComparison.Ordinal));
+
+        var link = app.Mailbox.LinkTo("dk@example.com");
+        await davit.PostAsync(link, link, []);
+        Assert.Equal($"{play}?mail=same#mail", await AskAsync("DK@Example.com"));
+        Assert.Single(app.Mailbox.Sent, m => m.To.StartsWith("dk@", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -76,16 +86,16 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Hayk", "Inga", "Karine"], draw: false);
         var play = $"/play/{game.Invite}";
-        await game.People["Hayk"].PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "hayk@example.com" });
-        var link = app.Mailbox.LinkTo("hayk@example.com");
-        await UpdateAsync("hayk", p => p.EmailSentAt = DateTime.UtcNow.AddHours(-25));
+        await game.People["Hayk"].PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "hayk.new@example.com" });
+        var link = app.Mailbox.LinkTo("hayk.new@example.com");
+        await UpdateAsync("Hayk", p => p.EmailSentAt = DateTime.UtcNow.AddHours(-25));
 
         var phone = await Browser.OpenAsync(app);
         Assert.Contains("This link has expired", await phone.PageAsync(link));
         // The expired page has no button; a page opened before the day ran out still posts it.
         var late = await phone.PostAsync("/", link, []);
         Assert.Contains("This link has expired", await late.Content.ReadAsStringAsync(Ct));
-        Assert.Null(await EmailAsync("hayk"));
+        Assert.Equal("hayk@example.com", await EmailAsync("Hayk"));
         Assert.DoesNotContain("A confirmation e-mail went to", await game.People["Hayk"].PageAsync(play));
     }
 
@@ -94,25 +104,30 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
     {
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Levon", "Mariam", "Narek"], draw: true);
-        await UpdateAsync("levon", p => p.Email = "levon@example.com");
+        // Mariam stands for someone who signed up with a login before addresses and never linked one.
+        await UpdateAsync("Mariam", p =>
+        {
+            p.Login = "mariam";
+            p.Email = null;
+        });
         var join = $"/join/{game.Invite}";
         var play = $"/play/{game.Invite}";
         var phone = await Browser.OpenAsync(app);
         Assert.Contains("Forgot your password?", await phone.PageAsync(join));
 
-        // An unknown login, a login without an address and the right one, twice, all get the same answer.
-        foreach (var login in new[] { "nobody", "mariam", "Levon", "levon" })
+        // An unknown address, a login without an address and the right address, twice, all get the same answer.
+        foreach (var typed in new[] { "nobody@example.com", "mariam", "Levon@Example.com", "levon@example.com" })
         {
-            var asked = await phone.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = login });
+            var asked = await phone.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = typed });
             Assert.Equal($"{join}?forgot=true", asked.Headers.Location!.OriginalString);
         }
-        Assert.Contains("If an e-mail address is linked to this login", await phone.PageAsync($"{join}?forgot=true"));
-        var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "levon@example.com");
-        Assert.Equal(("reset", "Secret Santa: a new password"), (mail.Kind, mail.Subject));
+        Assert.Contains("If there is such a participant with a linked address", await phone.PageAsync($"{join}?forgot=true"));
+        var mail = Assert.Single(app.Mailbox.Sent, m => m.To == "levon@example.com" && m.Kind == "reset");
+        Assert.Equal("Secret Santa: a new password", mail.Subject);
         var link = app.Mailbox.LinkTo("levon@example.com");
 
         // Asking changed nothing: the old password still signs in, and opening the link only shows the button.
-        Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "levon", "secret-1")).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "levon@example.com", "secret-1")).StatusCode);
         Assert.Contains("Sign in and set a password", await phone.PageAsync(link));
 
         var used = await phone.PostAsync(link, link, []);
@@ -121,12 +136,12 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.Contains("Sign-in details", page);
         Assert.DoesNotContain("Password resets:", page);
         Assert.Equal(HttpStatusCode.Redirect, (await game.People["Levon"].GetAsync(play)).StatusCode);
-        Assert.Contains("No password is set for this participant yet", await (await SignInAsync(join, "levon", "secret-1")).Content.ReadAsStringAsync(Ct));
+        Assert.Contains("No password is set for this participant yet", await (await SignInAsync(join, "levon@example.com", "secret-1")).Content.ReadAsStringAsync(Ct));
         Assert.Contains("This link has already been used", await phone.PageAsync(link));
 
         var saved = await phone.PostAsync(play, play + "?handler=Credentials", new() { ["Password"] = "new-secret", ["PasswordRepeat"] = "new-secret" });
         Assert.Equal(HttpStatusCode.Redirect, saved.StatusCode);
-        Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "levon", "new-secret")).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await SignInAsync(join, "levon@example.com", "new-secret")).StatusCode);
     }
 
     [Fact]
@@ -137,15 +152,16 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var play = $"/play/{game.Invite}";
         var join = $"/join/{game.Invite}";
         var ovsanna = game.People["Ovsanna"];
-        await UpdateAsync("petros", p => p.Email = "petros@example.com");
 
         app.Mailbox.Fail = true;
         try
         {
-            var asked = await ovsanna.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "ovsanna@example.com" });
+            var asked = await ovsanna.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "ovsanna.k@example.com" });
             Assert.Equal($"{play}?mail=failed#mail", asked.Headers.Location!.OriginalString);
             Assert.Contains("be sent. Please try again a bit later.", await ovsanna.PageAsync($"{play}?mail=failed"));
-            await ovsanna.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "petros" });
+            await ovsanna.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "petros@example.com" });
+            var signup = await (await Browser.OpenAsync(app)).PostAsync(join, join, Games.JoinFields("Sevak"));
+            Assert.Contains("be sent. Please try again a bit later.", await signup.Content.ReadAsStringAsync(Ct));
         }
         finally
         {
@@ -154,16 +170,20 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         Assert.DoesNotContain("A confirmation e-mail went to", await ovsanna.PageAsync(play));
         await using (var scope = app.Services.CreateAsyncScope())
         {
-            var petros = await scope.ServiceProvider.GetRequiredService<AppDb>().Participants.SingleAsync(p => p.Login == "petros", Ct);
+            var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+            var petros = await db.Participants.SingleAsync(p => p.Name == "Petros", Ct);
             Assert.Null(petros.ResetToken);
             Assert.Null(petros.ResetSentAt);
+            Assert.False(await db.Signups.AnyAsync(s => s.Email == "sevak@example.com", Ct));
         }
 
         // Nothing went out, so asking again right away is not "too soon".
-        Assert.Equal($"{play}#mail", (await ovsanna.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "ovsanna@example.com" })).Headers.Location!.OriginalString);
-        await ovsanna.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "petros" });
-        Assert.Single(app.Mailbox.Sent, m => m.To == "ovsanna@example.com");
-        Assert.Single(app.Mailbox.Sent, m => m.To == "petros@example.com");
+        Assert.Equal($"{play}#mail", (await ovsanna.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "ovsanna.k@example.com" })).Headers.Location!.OriginalString);
+        await ovsanna.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "petros@example.com" });
+        Assert.Equal(HttpStatusCode.Redirect, (await (await Browser.OpenAsync(app)).PostAsync(join, join, Games.JoinFields("Sevak"))).StatusCode);
+        Assert.Single(app.Mailbox.Sent, m => m.To == "ovsanna.k@example.com");
+        Assert.Single(app.Mailbox.Sent, m => m.To == "petros@example.com" && m.Kind == "reset");
+        Assert.Single(app.Mailbox.Sent, m => m.To == "sevak@example.com");
     }
 
     [Fact]
@@ -174,7 +194,8 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var play = $"/play/{game.Invite}";
         var join = $"/join/{game.Invite}";
         var sona = game.People["Sona"];
-        await UpdateAsync("sona", p => p.Email = "sona@example.com");
+        // Sona stands for someone who signed up with a login and linked an address later.
+        await UpdateAsync("Sona", p => p.Login = "sona");
         Assert.Contains("Linked address: sona@example.com", await sona.PageAsync(play));
         await (await Browser.OpenAsync(app)).PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "sona" });
         var link = app.Mailbox.LinkTo("sona@example.com");
@@ -182,9 +203,15 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         var removed = await sona.PostAsync(play, play + "?handler=MailRemove", []);
 
         Assert.Equal($"{play}#mail", removed.Headers.Location!.OriginalString);
-        Assert.Null(await EmailAsync("sona"));
+        Assert.Null(await EmailAsync("Sona"));
         Assert.DoesNotContain("Linked address", await sona.PageAsync(play));
         Assert.Equal(HttpStatusCode.NotFound, (await (await Browser.OpenAsync(app)).GetAsync(link)).StatusCode);
+
+        // An address that is also the login can only be replaced, not unlinked.
+        var tigran = game.People["Tigran"];
+        Assert.DoesNotContain("Unlink the address", await tigran.PageAsync(play));
+        await tigran.PostAsync(play, play + "?handler=MailRemove", []);
+        Assert.Equal("tigran@example.com", await EmailAsync("Tigran"));
     }
 
     private async Task<HttpResponseMessage> SignInAsync(string join, string login, string password)
@@ -193,27 +220,26 @@ public sealed class MailTests(SantaApp app) : IClassFixture<SantaApp>
         return await device.PostAsync(join, join + "?handler=SignIn", new() { ["SignInLogin"] = login, ["SignInPassword"] = password });
     }
 
-    private async Task<string?> EmailAsync(string login)
+    private async Task<string?> EmailAsync(string name)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        return await db.Participants.Where(p => p.Login == login).Select(p => p.Email).SingleAsync(Ct);
+        return await db.Participants.Where(p => p.Name == name).Select(p => p.Email).SingleAsync(Ct);
     }
 
-    private async Task UpdateAsync(string login, Action<Participant> change)
+    private async Task UpdateAsync(string name, Action<Participant> change)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-        change(await db.Participants.SingleAsync(p => p.Login == login, Ct));
+        change(await db.Participants.SingleAsync(p => p.Name == name, Ct));
         await db.SaveChangesAsync(Ct);
     }
 }
 
-// Until a mail relay is set up, the site runs as it did before e-mail.
 public sealed class MailOffTests(SantaAppWithoutMail app) : IClassFixture<SantaAppWithoutMail>
 {
     [Fact]
-    public async Task Without_a_relay_nothing_offers_e_mail()
+    public async Task Without_a_relay_the_address_signs_in_and_nothing_is_mailed()
     {
         SantaApp.SkipWithoutDatabase();
         var game = await Games.NewAsync(app, ["Anahit", "Bagrat", "Gevorg"], draw: false);
@@ -224,14 +250,18 @@ public sealed class MailOffTests(SantaAppWithoutMail app) : IClassFixture<SantaA
         Assert.DoesNotContain("id=\"mail\"", await anahit.PageAsync(play));
         Assert.DoesNotContain("Forgot your password?", await anahit.PageAsync(join));
         Assert.Equal(HttpStatusCode.NotFound, (await anahit.PostAsync(play, play + "?handler=Mail", new() { ["Email"] = "anahit@example.com" })).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await anahit.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "anahit" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await anahit.PostAsync(join, join + "?handler=Forgot", new() { ["ForgotLogin"] = "anahit@example.com" })).StatusCode);
         Assert.DoesNotContain("no e-mail", await game.Organizer.PageAsync(game.Admin));
+        var device = await Browser.OpenAsync(app);
+        var signedIn = await device.PostAsync(join, join + "?handler=SignIn", new() { ["SignInLogin"] = "anahit@example.com", ["SignInPassword"] = "secret-1" });
+        Assert.Equal(HttpStatusCode.Redirect, signedIn.StatusCode);
 
-        // An address linked while a relay was set up gets no notices once it is gone.
+        // Nothing confirmed the addresses, and one confirmed while a relay was set up gets no notices once it is gone.
         await using (var scope = app.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDb>();
-            await db.Participants.Where(p => p.Login == "anahit").ExecuteUpdateAsync(s => s.SetProperty(p => p.Email, "anahit@example.com"), TestContext.Current.CancellationToken);
+            Assert.False(await db.Participants.AnyAsync(p => p.Email != null, TestContext.Current.CancellationToken));
+            await db.Participants.Where(p => p.Name == "Anahit").ExecuteUpdateAsync(s => s.SetProperty(p => p.Email, "anahit@example.com"), TestContext.Current.CancellationToken);
         }
         Assert.Equal(HttpStatusCode.Redirect, (await game.Organizer.PostAsync(game.Admin, game.Admin + "?handler=Draw", [])).StatusCode);
         Assert.False(app.Services.GetRequiredService<MailQueue>().Reader.TryRead(out _));

@@ -76,6 +76,10 @@
 
 <section class="card">
     <h2>@T["Participants"] <span class="count">@Model.People.Count</span></h2>
+    @if (!drawn && Model.Waiting.Count > 0)
+    {
+        <p class="hint">@T.F("SignupsWaiting", string.Join(", ", Model.Waiting))</p>
+    }
     @if (Model.People.Count == 0)
     {
         <p class="muted">@T["NoParticipants"]</p>
@@ -89,7 +93,15 @@
                     <div class="who">
                         <div class="name">@p.Name</div>
                         <div class="hint">
-                            @(p.Login is null ? T["NoLogin"] : T.F("LoginIs", p.Login)) ·
+                            @if (p.Login is null)
+                            {
+                                <text>@T["NoLogin"] · </text>
+                            }
+                            else if (!p.Login.Contains('@'))
+                            {
+                                @* A login that is an e-mail address stays hidden: only the participant sees their address. *@
+                                <text>@T.F("LoginIs", p.Login) · </text>
+                            }
                             @(p.Wishlist is null ? T["WishlistEmpty"] : T["WishlistFilled"])
                             @if (p.PasswordHash is null)
                             {

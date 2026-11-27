@@ -1,0 +1,27 @@
+@page "/signup/{token}"
+@model SignupModel
+@{
+    ViewData["Title"] = T["SignupTitle"];
+    var invite = Model.Pending.Game.InviteToken;
+}
+
+<section class="card waiting">
+    <h1>@T["SignupTitle"]</h1>
+    @if (Model.Expired)
+    {
+        <p class="muted">@T["SignupExpired"]</p>
+        <a class="btn secondary" href="/join/@invite?mode=register">@T["TabRegister"]</a>
+    }
+    else if (Model.ProblemKey is { } problem)
+    {
+        <p class="muted">@(problem == "GameFull" ? T.F(problem, Limits.MaxParticipants) : T.F(problem, Model.Pending.Name))</p>
+        <a class="btn secondary" href="/join/@invite">@T["AuthTitle"]</a>
+    }
+    else
+    {
+        <p>@T.F("SignupText", Model.Pending.Name, Model.Pending.Email)</p>
+        <form method="post">
+            <button type="submit" class="btn green">@T["SignupButton"]</button>
+        </form>
+    }
+</section>

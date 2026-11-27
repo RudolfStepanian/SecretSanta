@@ -12,6 +12,8 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
     public Game Game { get; private set; } = null!;
     public List<Participant> People { get; private set; } = [];
     public List<(int Id, string A, string B)> Pairs { get; private set; } = [];
+    // Names of those who signed up and haven't opened the link from their e-mail yet; they are not in the game.
+    public List<string> Waiting { get; private set; } = [];
     public bool Created { get; private set; }
     [TempData] public string? ErrorKey { get; set; }
     [TempData] public string? ResetName { get; set; }
@@ -177,6 +179,8 @@ public class AdminModel(AppDb db, Notifier notifier) : PageModel
         Pairs = game.Exclusions
             .Select(x => (x.Id, names.GetValueOrDefault(x.FirstId, "?"), names.GetValueOrDefault(x.SecondId, "?")))
             .ToList();
+        var since = DateTime.UtcNow - MailLinks.Life;
+        Waiting = await db.Signups.Where(s => s.GameId == game.Id && s.SentAt > since).OrderBy(s => s.SentAt).Select(s => s.Name).ToListAsync();
         return true;
     }
 

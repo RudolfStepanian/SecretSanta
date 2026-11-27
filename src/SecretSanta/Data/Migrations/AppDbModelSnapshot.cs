@@ -177,8 +177,8 @@ namespace SecretSanta.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Login")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
 
                     b.Property<DateTime?>("MessageMailAt")
                         .HasColumnType("timestamp with time zone");
@@ -250,6 +250,62 @@ namespace SecretSanta.Data.Migrations
                     b.ToTable("Participants");
                 });
 
+            modelBuilder.Entity("SecretSanta.Data.Signup", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)");
+
+                    b.Property<int>("GameId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Lang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("NotWanted")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Wishlist")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("GameId", "Email")
+                        .IsUnique();
+
+                    b.ToTable("Signups");
+                });
+
             modelBuilder.Entity("SecretSanta.Data.Exclusion", b =>
                 {
                     b.HasOne("SecretSanta.Data.Participant", null)
@@ -298,6 +354,17 @@ namespace SecretSanta.Data.Migrations
                     b.Navigation("Game");
 
                     b.Navigation("Recipient");
+                });
+
+            modelBuilder.Entity("SecretSanta.Data.Signup", b =>
+                {
+                    b.HasOne("SecretSanta.Data.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
                 });
 
             modelBuilder.Entity("SecretSanta.Data.Game", b =>

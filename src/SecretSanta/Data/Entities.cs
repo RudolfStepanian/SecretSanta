@@ -65,6 +65,23 @@ public class Message
     public DateTime CreatedAt { get; set; }
 }
 
+// A sign-up waiting for its address to be confirmed. It becomes a participant only through the link mailed to the
+// address, so until then the person is not in the game: not on the list, not in the draw, and can't sign in.
+public class Signup
+{
+    public int Id { get; set; }
+    public int GameId { get; set; }
+    public Game Game { get; set; } = null!;
+    public string Email { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string PasswordHash { get; set; } = "";
+    public string? Wishlist { get; set; }
+    public string? NotWanted { get; set; }
+    public string Token { get; set; } = "";
+    public string Lang { get; set; } = "";
+    public DateTime SentAt { get; set; }
+}
+
 public class Exclusion
 {
     public int Id { get; set; }
